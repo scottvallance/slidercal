@@ -637,7 +637,7 @@ function startDrag(cat, e){
   shStrip.classList.add("active");
   // full-width slider; the value starts wherever your thumb lands on it
   // inset from both edges (more on the far side) so the whole range is in comfortable thumb reach
-  const FAR = 40, NEAR = 40, tl = left + (mirror ? FAR : NEAR), tw = width - FAR - NEAR;
+  const FAR = 60, NEAR = 60, tl = left + (mirror ? FAR : NEAR), tw = width - FAR - NEAR;
   drag = {cat, mirror, left: tl, width: tw, startX: e.clientX, moved: false, p: 0};
   Object.assign(shTrack.style, {left: tl + "px", width: tw + "px", top: top + "px"});
   renderStrip(cat, shStrip, Math.max(6, Math.min(16, Math.floor((top - shStrip.getBoundingClientRect().top - 16) / 19))), mirror);
@@ -1375,14 +1375,14 @@ function useLocal(note){
   if (usedDb) return;
   store = localStore(); store.subscribe(onData); setStatus(note);
 }
-const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261110-083910"), 10000);
+const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261110-084100"), 10000);
 (window.claude ? window.claude.use("db") : Promise.resolve(null)).then(db => {
   clearTimeout(fallbackTimer);
-  if (!db){ useLocal("Saved on this device only · version 20261110-083910"); return; }
+  if (!db){ useLocal("Saved on this device only · version 20261110-084100"); return; }
   usedDb = true; store = dbStore(db);
   const slow = setTimeout(() => setStatus("Can't reach your saved data yet. New entries will sync when it reconnects."), 10000);
   store.subscribe(onData, e => { clearTimeout(slow); setStatus("Sync stopped. Reload the page to reconnect."); }, () => { clearTimeout(slow); setStatus("Synced to your account"); });
-}).catch(() => useLocal("Saved on this device only · version 20261110-083910"));
+}).catch(() => useLocal("Saved on this device only · version 20261110-084100"));
 })();
 </script>
 
