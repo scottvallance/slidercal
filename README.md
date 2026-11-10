@@ -1,6 +1,6 @@
 # Slidecal
 
-A calorie tracker built around one idea: **logging should take two seconds.** You don't search for foods or weigh portions. There's a button for each meal (snack, breakfast, lunch, dinner, drinks) along the bottom of the screen. Press one and, without lifting, slide sideways to roughly what you just ate.
+A calorie tracker built around one idea: **logging should take two seconds.** You don't search for foods or weigh portions. There's a button for each meal (snack, breakfast, lunch, dinner, drinks), fanned around the bottom corner under your thumb. Press one and, without lifting, slide away from the corner to roughly what you just ate.
 
 While you slide, a scale of familiar foods fills the top of the screen, each placed at its calorie value, so you can see at a glance that a flat white is down here and a big bowl of carbonara is up there. The estimate doesn't have to be exact. It just has to be quick enough that you actually do it.
 
@@ -8,7 +8,7 @@ While you slide, a scale of familiar foods fills the top of the screen, each pla
 
 ## Features
 
-- **Press a meal, slide, let go.** All five meals sit in thumb reach, and the buttons turn into a slider under your finger. Let go and the entry logs after a few seconds, with an Undo in case you slipped.
+- **Press a meal, slide, let go.** All five meals sit in a thumb-reach arc, for left or right hands, and the press point becomes the start of a slider under your finger. Let go and the entry logs after a few seconds, with an Undo in case you slipped.
 - **A food scale while you drag.** It uses your own foods first, adds big portions and common combos, and falls back to a built-in list wherever your foods leave a gap.
 - **Your foods.** List what you usually eat, and an AI chat of your choice fills in similar foods and estimates small, usual and large servings (see below).
 - **Calibration.** Place known foods on the slider by feel. The app fits each meal's curve to your sense of scale.

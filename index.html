@@ -69,9 +69,11 @@ button:focus-visible,input:focus-visible,select:focus-visible,.track:focus-visib
 
 /* slider rows */
 .first-screen{display:flex;flex-direction:column;min-height:calc(100svh - 128px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
-.rows{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:auto;padding-top:16px;padding-bottom:4px}
+.rows{position:relative;height:300px;margin-top:auto;margin-bottom:4px}
+.rows .pad{position:absolute;width:76px;margin:-34px 0 0 -38px;padding:0}
+.hand-btn{position:absolute;top:0;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer}
 .pad{display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:none;padding:6px 0;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;min-width:0}
-.pad .knob{width:56px;height:56px;border-radius:50%;background:var(--c);box-shadow:0 3px 10px color-mix(in srgb,var(--c) 45%,transparent);display:grid;place-items:center;color:#fff;font-family:var(--display);font-weight:700;font-size:13px;transition:transform .12s}
+.pad .knob{width:52px;height:52px;border-radius:50%;background:var(--c);box-shadow:0 3px 10px color-mix(in srgb,var(--c) 45%,transparent);display:grid;place-items:center;color:#fff;font-family:var(--display);font-weight:700;font-size:13px;transition:transform .12s}
 .pad.on .knob{transform:scale(1.1)}
 .pad .pname{font-size:13px;font-weight:600;color:var(--fg)}
 .pad .ptoday{font-size:11px;color:var(--muted);min-height:14px;font-variant-numeric:tabular-nums}
@@ -503,7 +505,7 @@ function onData(d){
     firstRunChecked = true;
     if (!state.prefs.setupV2Done && !CATS.some(c => customOf(c.id).length)) setTimeout(() => openSetup(0), 0);
   }
-  renderToday(); renderTicks(); renderCal(); renderFoods();
+  renderToday(); renderTicks(); renderCal(); renderFoods(); layoutStar();
   if (!$("#view-history").hidden) renderHistory();
 }
 // Foods offered for a meal: built-ins you haven't switched off, your own, and meals you calibrated with real numbers.
@@ -596,51 +598,60 @@ function makeSlider(track, {onMove, onStart, onEnd}){
 const rowsEl = $("#rows"); const rows = {};
 let pending = null; // {cat, p, timer, started}
 
-// Five meal buttons in thumb reach. Press one and, without lifting, slide sideways: the buttons turn into
-// a slider under your finger and the food scale appears at the top. Let go to log; a press without sliding logs nothing.
+// Five meal buttons fanned around the bottom corner under your thumb (left- or right-handed).
+// Press one and, without lifting, slide away from the corner: the further you go, the more calories.
+// The food scale fills the top of the screen; the slider runs from your hand's edge across the screen.
 const sheet = $("#sheet"), shStrip = $("#sh-strip"), shTrack = $("#sh-track"), shTop = $("#sh-top");
 const shThumb = shTrack.querySelector(".thumb"), shFill = shTrack.querySelector(".fill");
 let drag = null;
-function setTrack(p){
-  shThumb.style.left = `calc(22px + (100% - 44px) * ${p})`;
-  shFill.style.width = `calc(44px + (100% - 44px) * ${p})`;
+const hand = () => (state.prefs && state.prefs.hand) || "right";
+function setTrack(p, mirror){
+  const pos = `(100% - 44px) * ${p}`;
+  shThumb.style.left = mirror ? `calc(100% - 22px - ${pos})` : `calc(22px + ${pos})`;
+  shFill.style.width = `calc(44px + ${pos})`;
+  shFill.style.left = mirror ? "auto" : "0"; shFill.style.right = mirror ? "0" : "auto";
 }
 function sheetShow(cat, p){
-  const k = kcalAt(cat, p);
-  setTrack(p);
+  const k = kcalAt(cat, p), mirror = drag && drag.mirror;
+  setTrack(p, mirror);
   $("#sh-k").innerHTML = `${fmt(k)}<small>kcal</small>`;
-  const cur = shStrip.querySelector(".cursor"); if (cur) cur.style.left = `calc(22px + (100% - 44px) * ${p})`;
+  const cur = shStrip.querySelector(".cursor");
+  if (cur) cur.style.left = mirror ? `calc(100% - 22px - (100% - 44px) * ${p})` : `calc(22px + (100% - 44px) * ${p})`;
   const tol = Math.max(40, k*0.12);
   shStrip.querySelectorAll(".fitem").forEach(l => l.classList.toggle("near", k > 0 && k >= +l.dataset.lo - tol && k <= +l.dataset.hi + tol));
   const sg = k ? suggest(cat,k) : null, match = $("#sh-match");
-  match.innerHTML = sg ? `≈ <b></b>` + sg.slice(1,3).map(() => ` · <span></span>`).join("") : (k ? "Barely anything" : "Slide right to add");
+  match.innerHTML = sg ? `≈ <b></b>` + sg.slice(1,3).map(() => ` · <span></span>`).join("") : (k ? "Barely anything" : (mirror ? "Slide left to add" : "Slide right to add"));
   if (sg){ const parts = match.querySelectorAll("b,span"); sg.slice(0,3).forEach((x,i) => parts[i].textContent = `${cap(x.label)} (${fmt(x.val)})`); }
 }
 function startDrag(cat, e){
   if (pending) commitPending();
-  const c = CATS.find(x => x.id === cat);
-  const r = rowsEl.getBoundingClientRect(), knob = e.currentTarget.querySelector(".knob").getBoundingClientRect();
-  const left = r.left, width = r.width, top = knob.top + knob.height/2 - 30;
+  const c = CATS.find(x => x.id === cat), mirror = hand() === "right";
+  const r = rowsEl.getBoundingClientRect();
+  const left = r.left, width = r.width, top = clamp(e.clientY - 30, 200, innerHeight - 140);
   sheet.style.setProperty("--c", `var(--c-${cat})`); shTrack.style.setProperty("--c", `var(--c-${cat})`);
   Object.assign(shTrack.style, {left: left + "px", width: width + "px", top: top + "px"});
   Object.assign(shTop.style, {left: left + "px", width: width + "px"});
   $("#sh-name").textContent = c.name;
   sheet.hidden = false;
   shStrip.classList.add("active");
-  renderStrip(cat, shStrip, Math.max(6, Math.min(16, Math.floor((top - shStrip.getBoundingClientRect().top - 16) / 19))));
+  drag = {cat, mirror, startX: e.clientX, moved: false, p: 0,
+    // finger travel from the press point to the far edge covers the whole range
+    span: Math.max(120, mirror ? e.clientX - left - 24 : left + width - 24 - e.clientX)};
+  renderStrip(cat, shStrip, Math.max(6, Math.min(16, Math.floor((top - shStrip.getBoundingClientRect().top - 16) / 19))), mirror);
   const box = shTrack.querySelector(".ticks"); box.innerHTML = "";
   ({snack:[100,250,500],breakfast:[250,500,800],lunch:[250,500,1000],dinner:[500,1000,1500],drinks:[100,250,500]})[cat].forEach(m => {
     if (m > curveOf(cat).max) return;
     const t = document.createElement("span"); t.className = "tick"; t.textContent = m;
-    t.style.left = `calc(22px + (100% - 44px) * ${posFor(cat,m)})`; box.appendChild(t);
+    const pos = `(100% - 44px) * ${posFor(cat,m)}`;
+    t.style.left = mirror ? `calc(100% - 22px - ${pos})` : `calc(22px + ${pos})`; box.appendChild(t);
   });
-  drag = {cat, left, width, startX: e.clientX, moved: false, p: 0};
-  moveDrag(e);
+  sheetShow(cat, 0);
 }
 function moveDrag(e){
   if (!drag) return;
-  if (Math.abs(e.clientX - drag.startX) > 6) drag.moved = true;
-  drag.p = clamp((e.clientX - drag.left - 22) / (drag.width - 44), 0, 1);
+  const dx = drag.mirror ? drag.startX - e.clientX : e.clientX - drag.startX;
+  if (Math.abs(dx) > 6) drag.moved = true;
+  drag.p = clamp(dx / drag.span, 0, 1);
   sheetShow(drag.cat, drag.p);
 }
 function endDrag(){
@@ -652,7 +663,7 @@ function endDrag(){
 CATS.forEach(c => {
   const b = document.createElement("button");
   b.className = "pad"; b.type = "button"; b.style.setProperty("--c", `var(--c-${c.id})`);
-  b.setAttribute("aria-label", `Log ${c.name.toLowerCase()}: press and slide sideways`);
+  b.setAttribute("aria-label", `Log ${c.name.toLowerCase()}: press and slide away from the corner`);
   b.innerHTML = `<span class="knob"></span><span class="pname">${c.name}</span><span class="ptoday" data-today></span>`;
   b.addEventListener("contextmenu", e => e.preventDefault());
   b.addEventListener("pointerdown", e => { e.preventDefault(); b.setPointerCapture(e.pointerId); startDrag(c.id, e); });
@@ -661,6 +672,24 @@ CATS.forEach(c => {
   rowsEl.appendChild(b);
   rows[c.id] = {el: b, slider: {set(){}}, show(){}, today: b.querySelector("[data-today]")};
 });
+const handBtn = document.createElement("button");
+handBtn.className = "hand-btn"; handBtn.type = "button";
+handBtn.addEventListener("click", () => { savePrefs({hand: hand() === "right" ? "left" : "right"}); layoutStar(); });
+rowsEl.appendChild(handBtn);
+// quarter-circle fan around the corner: snack at the top of the arc, drinks along the bottom
+function layoutStar(){
+  const W = rowsEl.clientWidth, H = rowsEl.clientHeight; if (!W) return;
+  const right = hand() === "right", R = Math.min(200, W - 150);
+  const cx = right ? W - 22 : 22, cy = H - 46;
+  CATS.forEach((c, i) => {
+    const a = (92 + i * (86 / 4)) * Math.PI / 180;   // 92° .. 178°
+    const x = cx + (right ? 1 : -1) * R * Math.cos(a), y = cy - R * Math.sin(a);
+    Object.assign(rows[c.id].el.style, {left: clamp(x, 40, W - 40) + "px", top: clamp(y, 40, H - 34) + "px"});
+  });
+  handBtn.textContent = right ? "Left-handed?" : "Right-handed?";
+  handBtn.style.left = right ? "0" : "auto"; handBtn.style.right = right ? "auto" : "0";
+}
+addEventListener("resize", layoutStar);
 
 function schedule(cat,p,k){
   if (pending) clearTimeout(pending.timer);
@@ -763,12 +792,12 @@ function stripCandidates(cat){
   mineItems.forEach(([n,v,m,ex]) => { if (v <= max * 0.15) add(`2 × ${lc((ex && ex.short) || shortName(n))}`, v*2, 3, true); });
   return out;
 }
-function renderStrip(cat, strip, LANES = 4){
+function renderStrip(cat, strip, LANES = 4, mirror = false){
   if (!strip) return;
   const W = strip.clientWidth;
   if (!W) return;
   const LANE_H = 19, GAP = 8, inner = W - 44;
-  const X = v => 22 + inner * posFor(cat, v);
+  const X = v => mirror ? W - (22 + inner * posFor(cat, v)) : 22 + inner * posFor(cat, v);
   const cands = stripCandidates(cat).map(c => { const w = textW(c.label) * 13/12 + 8, x = X(c.v), cx = clamp(x, w/2, W - w/2); return {...c, x, a: cx - w/2, b: cx + w/2, cx}; });
   const lanes = Array.from({length:LANES}, () => []);
   strip.innerHTML = `<div class="cursor"></div>`;
@@ -1184,7 +1213,7 @@ function showView(v){
   ["today","history","foods","cal","setup"].forEach(n => $("#view-" + n).hidden = n !== v);
   if (pending) commitPending();
   window.scrollTo(0,0);
-  if (v === "today") CATS.forEach(c => renderStrip(c.id));
+  if (v === "today") layoutStar();
   if (v === "foods") renderFoods();
   if (v === "history") renderHistory();
 }
@@ -1328,22 +1357,22 @@ $("#b-paste").addEventListener("click", () => { if (!$("#b-text").value.trim()){
 function setStatus(t){ $("#status").textContent = t; }
 
 // ---------- boot ----------
-renderToday(); renderTicks(); renderCal(); renderFoods();
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => CATS.forEach(c => renderStrip(c.id)));
+renderToday(); renderTicks(); renderCal(); renderFoods(); layoutStar();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutStar);
 let usedDb = false;
 if (window.claude) window.claude.use("sample").then(fn => { sampleFn = fn; updateSetupButtons(); }).catch(() => {});
 function useLocal(note){
   if (usedDb) return;
   store = localStore(); store.subscribe(onData); setStatus(note);
 }
-const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261110-0803"), 10000);
+const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261110-0807"), 10000);
 (window.claude ? window.claude.use("db") : Promise.resolve(null)).then(db => {
   clearTimeout(fallbackTimer);
-  if (!db){ useLocal("Saved on this device only · version 20261110-0803"); return; }
+  if (!db){ useLocal("Saved on this device only · version 20261110-0807"); return; }
   usedDb = true; store = dbStore(db);
   const slow = setTimeout(() => setStatus("Can't reach your saved data yet. New entries will sync when it reconnects."), 10000);
   store.subscribe(onData, e => { clearTimeout(slow); setStatus("Sync stopped. Reload the page to reconnect."); }, () => { clearTimeout(slow); setStatus("Synced to your account"); });
-}).catch(() => useLocal("Saved on this device only · version 20261110-0803"));
+}).catch(() => useLocal("Saved on this device only · version 20261110-0807"));
 })();
 </script>
 
