@@ -331,7 +331,8 @@ details summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:14p
   </section>
   <section id="view-setup" class="setup" hidden>
     <header class="top"><div><div class="date">Setup</div><h1 style="font-size:30px">Your usual foods</h1></div></header>
-    <p class="intro">Jot down a few things you usually have for each meal, then tap <b>Build my food list</b>. Claude adds similar foods you'd likely eat and estimates small, usual and large servings. Check the list, then save.</p>
+    <p class="intro" id="s-intro-ai" hidden>Jot down a few things you usually have for each meal, then tap <b>Build my food list</b>. Claude adds similar foods you'd likely eat and estimates small, usual and large servings. Check the list, then save.</p>
+    <p class="intro" id="s-intro">Jot down a few things you usually have for each meal. Then copy the prompt below into any AI chat (Claude, ChatGPT, Gemini…) and paste its answer back: it adds similar foods and estimates small, usual and large servings. Or add foods by hand. Check the list, then save.</p>
     <div class="setup-meals" id="s-meals"></div>
     <details class="card chatflow" id="s-chat" style="margin-top:14px">
       <summary>Use Claude or any AI chat instead</summary>
@@ -920,6 +921,7 @@ function setupTexts(){ const o = {}; CATS.forEach(c => { const t = $("#s-text-" 
 function updateSetupButtons(){
   const hasText = Object.keys(setupTexts()).length > 0;
   $("#s-build").hidden = !sampleFn;
+  $("#s-intro-ai").hidden = !sampleFn; $("#s-intro").hidden = !!sampleFn;
   if (!sampleFn && !$("#s-chat").dataset.init){ $("#s-chat").open = true; $("#s-chat").dataset.init = 1; }
   $("#s-build").disabled = setupBusy || !hasText;
   $("#s-save").disabled = setupBusy;
