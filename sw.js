@@ -1,5 +1,5 @@
 // Cache first per version; a new version installs alongside and takes over only when the user taps Update.
-const CACHE = "slidecal-20261110-0817";
+const CACHE = "slidecal-20261110-0835";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, {cache: "reload"}))))); });
 self.addEventListener("message", e => { if (e.data === "skip") self.skipWaiting(); });
