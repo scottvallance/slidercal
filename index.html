@@ -72,11 +72,17 @@ button:focus-visible,input:focus-visible,select:focus-visible,.track:focus-visib
 .rows{display:flex;flex-direction:column;gap:6px;margin-top:auto;padding-top:16px}
 .row{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:6px 12px 8px;display:flex;flex-direction:column;gap:4px}
 .row .row-val{font-size:18px}.row .row-val.zero{font-size:14px}.row .row-today{font-size:12px}
-.row.dragging{z-index:5}
+.scale-panel{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:16px;width:calc(100% - 32px);z-index:30;background:var(--surface);border:1px solid var(--line);border-radius:18px;
+  padding:12px;box-shadow:0 12px 36px rgb(0 0 0 / .2);display:flex;flex-direction:column;gap:8px;opacity:0;visibility:hidden;transform:translateY(-6px);
+  transition:opacity .15s,transform .15s,visibility 0s .15s;pointer-events:none}
+.scale-panel.on{opacity:1;visibility:visible;transform:none;transition:opacity .1s,transform .1s}
+.sp-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.sp-name{font-family:var(--display);font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px}
+.sp-k{font-family:var(--display);font-weight:800;font-size:30px;line-height:1}
+.sp-k small{font-family:var(--body);font-size:13px;font-weight:500;color:var(--muted);margin-left:3px}
+.scale-panel .strip{font-size:13px;line-height:15px}
 .track-zone{position:relative}
-.scale-pop{position:absolute;left:-13px;right:-13px;bottom:calc(100% + 12px);background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px 12px 8px;
-  box-shadow:0 10px 30px rgb(0 0 0 / .18);display:flex;flex-direction:column;gap:6px;opacity:0;visibility:hidden;transform:translateY(6px);transition:opacity .15s,transform .15s,visibility 0s .15s;pointer-events:none}
-.row.dragging .scale-pop{opacity:1;visibility:visible;transform:none;transition:opacity .12s,transform .12s}
+
 .row-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 .row-head > div{display:flex;align-items:baseline;gap:10px;min-width:0}
 .row-name{font-size:16px!important}
@@ -104,9 +110,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,.track:focus-visib
 .frange::before{content:"";position:absolute;left:0;right:0;top:16px;height:1.5px;background:currentColor;opacity:.45}
 .frange i{position:absolute;top:16.75px;border-radius:50%;background:currentColor;transform:translate(-50%,-50%)}
 .frange i.s{width:4px;height:4px}.frange i.m{width:6px;height:6px}.frange i.l{width:9px;height:9px}
-.strip.active .fitem{opacity:.3}
-.strip.active .fitem.near{opacity:1;color:var(--fg)}
-.strip.active .flabel.near{font-weight:700}
+.flabel{color:var(--fg)!important;font-weight:500}
+.flabel.mine{font-weight:600}
+.strip.active .flabel.near{font-weight:800;background:color-mix(in srgb,var(--c) 22%,var(--surface))}
 .strip .cursor{position:absolute;top:0;bottom:-4px;width:2px;margin-left:-1px;background:var(--c);border-radius:1px;opacity:0}
 .strip.active .cursor{opacity:1}
 .match{height:20px;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -365,6 +371,11 @@ details summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:14p
   <div class="status" id="status">Connecting…</div>
 </div>
 
+<div class="scale-panel" id="scale-panel" aria-live="polite">
+  <div class="sp-head"><span class="sp-name"><span class="dot"></span><span id="sp-name"></span></span><b class="sp-k num" id="sp-k">0<small>kcal</small></b></div>
+  <div class="match num" id="sp-match"></div>
+  <div class="strip" id="sp-strip" aria-hidden="true"></div>
+</div>
 <div class="toast" id="toast" hidden><span class="msg" id="toast-msg"></span><button id="toast-undo">Undo</button><span class="prog" id="toast-prog"></span></div>
 
 <nav class="nav" role="tablist">
@@ -553,11 +564,12 @@ CATS.forEach(c => {
   const el = document.createElement("div");
   el.className = "row"; el.style.setProperty("--c", `var(--c-${c.id})`);
   el.innerHTML = `<div class="row-head"><div><div class="row-name"><span class="dot"></span>${c.name}</div><div class="row-today num" data-today></div></div><div class="row-val zero num" data-val>0</div></div>
-    <div class="track-zone"><div class="scale-pop"><div class="match num" aria-live="polite"></div><div class="strip" aria-hidden="true"></div></div>
+    <div class="track-zone">
     <div class="track" tabindex="0" role="slider" aria-label="${c.name} calories" aria-valuemin="0" aria-valuemax="100"><div class="ticks"></div><div class="fill"></div><div class="thumb"></div></div></div>`;
   rowsEl.appendChild(el);
-  const valEl = el.querySelector("[data-val]"), strip = el.querySelector(".strip"), match = el.querySelector(".match");
+  const valEl = el.querySelector("[data-val]"), strip = $("#sp-strip"), match = $("#sp-match"), panel = $("#scale-panel"), track = el.querySelector(".track");
   const show = p => { const k = kcalAt(c.id,p); valEl.textContent = k ? fmt(k) : "0"; valEl.classList.toggle("zero", !k);
+    $("#sp-k").innerHTML = `${fmt(k)}<small>kcal</small>`;
     const cur = strip.querySelector(".cursor"); if (cur) cur.style.left = `calc(22px + (100% - 44px) * ${p})`;
     const tol = Math.max(40, k*0.12);
     strip.querySelectorAll(".fitem").forEach(l => l.classList.toggle("near", k > 0 && k >= +l.dataset.lo - tol && k <= +l.dataset.hi + tol));
@@ -565,11 +577,19 @@ CATS.forEach(c => {
     match.innerHTML = sg ? `≈ <b></b>` + sg.slice(1,3).map(() => ` · <span></span>`).join("") : (k ? "Barely anything" : "Slide right to add");
     if (sg){ const parts = match.querySelectorAll("b,span"); sg.slice(0,3).forEach((x,i) => parts[i].textContent = `${cap(x.label)} (${fmt(x.val)})`); } };
   const slider = makeSlider(el.querySelector(".track"), {
-    onStart(){ if (pending && pending.cat !== c.id) commitPending(); if (pending && pending.cat === c.id) clearTimeout(pending.timer); strip.classList.add("active"); el.classList.add("dragging"); },
+    onStart(){ if (pending && pending.cat !== c.id) commitPending(); if (pending && pending.cat === c.id) clearTimeout(pending.timer); openPanel(); },
     onMove: show,
-    onEnd(p){ strip.classList.remove("active"); el.classList.remove("dragging"); const k = kcalAt(c.id,p); if (!k){ cancelPending(); return; } schedule(c.id,p,k); }
+    onEnd(p){ strip.classList.remove("active"); panel.classList.remove("on"); const k = kcalAt(c.id,p); if (!k){ cancelPending(); return; } schedule(c.id,p,k); }
   });
-  rows[c.id] = {el, slider, show, strip, today: el.querySelector("[data-today]")};
+  // Pinned panel: lines up with this slider's track so food labels sit right above where the thumb goes.
+  function openPanel(){
+    const r = track.getBoundingClientRect();
+    panel.style.left = (r.left - 13) + "px"; panel.style.width = (r.width + 26) + "px";
+    panel.style.setProperty("--c", `var(--c-${c.id})`); $("#sp-name").textContent = c.name;
+    renderStrip(c.id, strip, 8);
+    strip.classList.add("active"); panel.classList.add("on");
+  }
+  rows[c.id] = {el, slider, show, today: el.querySelector("[data-today]")};
 });
 
 function schedule(cat,p,k){
@@ -678,12 +698,13 @@ function stripCandidates(cat){
   mineItems.forEach(([n,v,m,ex]) => { if (v <= max * 0.25) add(`2 × ${lc((ex && ex.short) || shortName(n))}`, v*2, 3, true); });
   return out;
 }
-function renderStrip(cat){
-  const strip = rows[cat].strip, W = strip.clientWidth;
+function renderStrip(cat, strip, LANES = 4){
+  if (!strip) return;
+  const W = strip.clientWidth;
   if (!W) return;
-  const LANES = 4, LANE_H = 18, GAP = 6, inner = W - 44;
+  const LANE_H = 19, GAP = 8, inner = W - 44;
   const X = v => 22 + inner * posFor(cat, v);
-  const cands = stripCandidates(cat).map(c => { const w = textW(c.label) + 6, x = X(c.v), cx = clamp(x, w/2, W - w/2); return {...c, x, a: cx - w/2, b: cx + w/2, cx}; });
+  const cands = stripCandidates(cat).map(c => { const w = textW(c.label) * 13/12 + 8, x = X(c.v), cx = clamp(x, w/2, W - w/2); return {...c, x, a: cx - w/2, b: cx + w/2, cx}; });
   const lanes = Array.from({length:LANES}, () => []);
   strip.innerHTML = `<div class="cursor"></div>`;
   let used = 0; const placed = new Set();
@@ -1250,14 +1271,14 @@ function useLocal(note){
   if (usedDb) return;
   store = localStore(); store.subscribe(onData); setStatus(note);
 }
-const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261110-0742"), 10000);
+const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261110-0748"), 10000);
 (window.claude ? window.claude.use("db") : Promise.resolve(null)).then(db => {
   clearTimeout(fallbackTimer);
-  if (!db){ useLocal("Saved on this device only · version 20261110-0742"); return; }
+  if (!db){ useLocal("Saved on this device only · version 20261110-0748"); return; }
   usedDb = true; store = dbStore(db);
   const slow = setTimeout(() => setStatus("Can't reach your saved data yet. New entries will sync when it reconnects."), 10000);
   store.subscribe(onData, e => { clearTimeout(slow); setStatus("Sync stopped. Reload the page to reconnect."); }, () => { clearTimeout(slow); setStatus("Synced to your account"); });
-}).catch(() => useLocal("Saved on this device only · version 20261110-0742"));
+}).catch(() => useLocal("Saved on this device only · version 20261110-0748"));
 })();
 </script>
 
