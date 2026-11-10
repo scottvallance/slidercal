@@ -1375,14 +1375,14 @@ function useLocal(note){
   if (usedDb) return;
   store = localStore(); store.subscribe(onData); setStatus(note);
 }
-const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261110-0838"), 10000);
+const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261110-083910"), 10000);
 (window.claude ? window.claude.use("db") : Promise.resolve(null)).then(db => {
   clearTimeout(fallbackTimer);
-  if (!db){ useLocal("Saved on this device only · version 20261110-0838"); return; }
+  if (!db){ useLocal("Saved on this device only · version 20261110-083910"); return; }
   usedDb = true; store = dbStore(db);
   const slow = setTimeout(() => setStatus("Can't reach your saved data yet. New entries will sync when it reconnects."), 10000);
   store.subscribe(onData, e => { clearTimeout(slow); setStatus("Sync stopped. Reload the page to reconnect."); }, () => { clearTimeout(slow); setStatus("Synced to your account"); });
-}).catch(() => useLocal("Saved on this device only · version 20261110-0838"));
+}).catch(() => useLocal("Saved on this device only · version 20261110-083910"));
 })();
 </script>
 
