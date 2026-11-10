@@ -1192,11 +1192,13 @@ async function importBackup(text){
     for (const e of (d.calib || [])) if (e && e.at && e.cat && !haveC.has(e.at + ":" + e.cat)) await store.addCalib(e);
     if (d.curves) await store.setCurves(d.curves);
     if (d.prefs) await store.setPrefs({...d.prefs, setupV2Done:true});
-    bnote(`Imported. ${added} log ${added===1?"entry":"entries"} added; foods, calibration and target restored.`);
+    $("#b-text").value = ""; $("#b-text").closest("details").open = false;
+    bnote(`✓ Imported. ${added} log ${added===1?"entry":"entries"} added; foods, calibration and target restored.`);
+    $("#b-note").scrollIntoView({block:"center", behavior:"smooth"});
   } catch(e){ bnote("Import stopped partway. Try again; entries already imported won't be duplicated.", true); }
 }
 $("#b-file").addEventListener("change", e => { const f = e.target.files[0]; if (!f) return; f.text().then(importBackup); e.target.value = ""; });
-$("#b-paste").addEventListener("click", () => importBackup($("#b-text").value));
+$("#b-paste").addEventListener("click", () => { if (!$("#b-text").value.trim()){ bnote("Paste the backup text into the box first.", true); return; } bnote("Importing…"); importBackup($("#b-text").value); });
 
 function setStatus(t){ $("#status").textContent = t; }
 
