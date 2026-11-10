@@ -727,14 +727,39 @@ const calTrack = $("#cal-track");
 const calSlider = makeSlider(calTrack, {
   onMove(p){ calTouched = true; $("#reveal").innerHTML = `Slider at <b class="num">${Math.round(p*100)}%</b> · the current scale reads this as <span class="num">${fmt(kcalAt(calCat,p))}</span> kcal`; updateSave(); },
 });
+// Guess-a-food pool spans the whole slider: your usual servings, small and large servings,
+// your mains with a side, and the core list. Each pick goes to the stretch of the slider with the fewest points so far.
+function calibPool(cat){
+  const max = curveOf(cat).max, out = [], seen = new Set();
+  const add = (n, v) => { v = Math.round(v); const k = n.toLowerCase(); if (v < 20 || v > max || seen.has(k)) return; seen.add(k); out.push([n, v]); };
+  const own = myFoods(cat).filter(f => f[2] && f[2] !== "logged");
+  own.forEach(([n,v]) => add(n, v));
+  own.forEach(([n,v,m,ex]) => { if (!ex) return; if (ex.l && ex.l > v*1.15) add("a large serving of " + lc(n), ex.l); if (ex.s && ex.s < v*0.85) add("a small serving of " + lc(n), ex.s); });
+  for (const A of own) for (const B of own){
+    if (A === B || B[1] > max*0.15 || B[1] > A[1]*0.5) continue;
+    add(A[0] + " with " + lc(B[0]), A[1] + B[1]);
+  }
+  const hidden = new Set((state.prefs.hidden || {})[cat] || []);
+  FOODS[cat].forEach(([n,v]) => { if (!hidden.has(n)) add(n, v); });
+  return out;
+}
 function newFood(){
-  const list = myFoods(calCat).filter(f => f[2] !== "logged");
-  if (!list.length){ calFood = ["(no foods left; tick some in My foods)",0]; renderFood(); return; }
+  const pool0 = calibPool(calCat);
+  if (!pool0.length){ calFood = ["(no foods left; tick some in My foods)",0]; renderFood(); return; }
   const prev = calFood && calFood[0];
   const done = new Set(state.calib.filter(x => x.cat === calCat).map(x => x.food));
-  let pool = list.filter(f => f[0] !== prev && !done.has(f[0]));
-  if (!pool.length) pool = list.filter(f => f[0] !== prev);
-  calFood = pool[Math.floor(Math.random()*pool.length)];
+  let pool = pool0.filter(f => f[0] !== prev && !done.has(f[0]));
+  if (!pool.length) pool = pool0.filter(f => f[0] !== prev);
+  if (!pool.length) pool = pool0;
+  const BINS = 6, bin = v => Math.min(BINS-1, Math.floor(posFor(calCat, v) * BINS));
+  const counts = Array(BINS).fill(0);
+  state.calib.filter(x => x.cat === calCat).forEach(x => counts[bin(x.kcal)]++);
+  const avail = [...new Set(pool.map(f => bin(f[1])))];
+  const least = Math.min(...avail.map(b => counts[b]));
+  const bins = avail.filter(b => counts[b] === least);
+  const pick = bins[Math.floor(Math.random()*bins.length)];
+  const inBin = pool.filter(f => bin(f[1]) === pick);
+  calFood = inBin[Math.floor(Math.random()*inBin.length)];
   calTouched = false; calSlider.set(0); $("#reveal").textContent = "Drag the slider, then save.";
   renderFood(); updateSave();
 }
@@ -782,7 +807,7 @@ function renderCal(){
   calCatsEl.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.cat === calCat));
   document.querySelectorAll("#cal-mode button").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === calMode));
   $("#guess-ui").hidden = calMode !== "guess"; $("#known-ui").hidden = calMode !== "known";
-  if (!calFood || !myFoods(calCat).some(f => f[0] === calFood[0])) newFood();
+  if (!calFood || !calibPool(calCat).some(f => f[0] === calFood[0])) newFood();
   const cname = CATS.find(c => c.id === calCat).name;
   renderFood();
   calTrack.style.setProperty("--c", `var(--c-${calCat})`);
