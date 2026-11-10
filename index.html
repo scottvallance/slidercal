@@ -635,12 +635,9 @@ function startDrag(cat, e){
   $("#sh-name").textContent = c.name;
   sheet.hidden = false;
   shStrip.classList.add("active");
-  drag = {cat, mirror, startX: e.clientX, moved: false, p: 0,
-    // finger travel from the press point to the far edge covers the whole range
-    span: Math.max(120, mirror ? e.clientX - left - 24 : left + width - 24 - e.clientX)};
-  // the slider starts exactly under your thumb and runs to the far edge
-  const tw = drag.span + 44;
-  Object.assign(shTrack.style, {left: (mirror ? e.clientX + 22 - tw : e.clientX - 22) + "px", width: tw + "px", top: top + "px"});
+  // full-width slider; the value starts wherever your thumb lands on it
+  drag = {cat, mirror, left, width, startX: e.clientX, moved: false, p: 0};
+  Object.assign(shTrack.style, {left: left + "px", width: width + "px", top: top + "px"});
   renderStrip(cat, shStrip, Math.max(6, Math.min(16, Math.floor((top - shStrip.getBoundingClientRect().top - 16) / 19))), mirror);
   const box = shTrack.querySelector(".ticks"); box.innerHTML = "";
   ({snack:[100,250,500],breakfast:[250,500,800],lunch:[250,500,1000],dinner:[500,1000,1500],drinks:[100,250,500]})[cat].forEach(m => {
@@ -649,13 +646,13 @@ function startDrag(cat, e){
     const pos = `(100% - 44px) * ${posFor(cat,m)}`;
     t.style.left = mirror ? `calc(100% - 22px - ${pos})` : `calc(22px + ${pos})`; box.appendChild(t);
   });
-  sheetShow(cat, 0);
+  moveDrag(e);
 }
 function moveDrag(e){
   if (!drag) return;
-  const dx = drag.mirror ? drag.startX - e.clientX : e.clientX - drag.startX;
-  if (Math.abs(dx) > 6) drag.moved = true;
-  drag.p = clamp(dx / drag.span, 0, 1);
+  if (Math.abs(e.clientX - drag.startX) > 6) drag.moved = true;
+  const x = (e.clientX - drag.left - 22) / (drag.width - 44);
+  drag.p = clamp(drag.mirror ? 1 - x : x, 0, 1);
   sheetShow(drag.cat, drag.p);
 }
 function endDrag(){
@@ -1376,14 +1373,14 @@ function useLocal(note){
   if (usedDb) return;
   store = localStore(); store.subscribe(onData); setStatus(note);
 }
-const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261110-0815"), 10000);
+const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261110-0817"), 10000);
 (window.claude ? window.claude.use("db") : Promise.resolve(null)).then(db => {
   clearTimeout(fallbackTimer);
-  if (!db){ useLocal("Saved on this device only · version 20261110-0815"); return; }
+  if (!db){ useLocal("Saved on this device only · version 20261110-0817"); return; }
   usedDb = true; store = dbStore(db);
   const slow = setTimeout(() => setStatus("Can't reach your saved data yet. New entries will sync when it reconnects."), 10000);
   store.subscribe(onData, e => { clearTimeout(slow); setStatus("Sync stopped. Reload the page to reconnect."); }, () => { clearTimeout(slow); setStatus("Synced to your account"); });
-}).catch(() => useLocal("Saved on this device only · version 20261110-0815"));
+}).catch(() => useLocal("Saved on this device only · version 20261110-0817"));
 })();
 </script>
 
