@@ -58,19 +58,28 @@ button{font:inherit;color:inherit}
 button:focus-visible,input:focus-visible,select:focus-visible,.track:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 /* header */
-.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding-block:8px 18px}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding-block:4px 14px}
 .date{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.08em}
 .total{font-family:var(--display);font-weight:800;font-size:44px;line-height:1;letter-spacing:-.02em}
 .total small{font-size:15px;font-weight:500;color:var(--muted);letter-spacing:0;margin-left:4px}
 .budget{text-align:right;color:var(--muted);font-size:13px}
 .budget b{display:block;font-family:var(--display);font-size:20px;color:var(--fg)}
-.bar{height:8px;border-radius:4px;background:var(--track);overflow:hidden;display:flex;margin-bottom:22px}
+.bar{height:8px;border-radius:4px;background:var(--track);overflow:hidden;display:flex;margin-bottom:14px}
 .bar span{height:100%;transition:width .3s}
 
 /* slider rows */
-.rows{display:flex;flex-direction:column;gap:14px}
-.row{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px 14px 12px;display:flex;flex-direction:column;gap:10px}
+#view-today:not([hidden]){display:flex;flex-direction:column;min-height:calc(100svh - 170px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
+.rows{display:flex;flex-direction:column;gap:6px;margin-top:auto;padding-top:16px}
+.row{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:6px 12px 8px;display:flex;flex-direction:column;gap:4px}
+.row .row-val{font-size:18px}.row .row-val.zero{font-size:14px}.row .row-today{font-size:12px}
+.row.dragging{z-index:5}
+.track-zone{position:relative}
+.scale-pop{position:absolute;left:-13px;right:-13px;bottom:calc(100% + 12px);background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px 12px 8px;
+  box-shadow:0 10px 30px rgb(0 0 0 / .18);display:flex;flex-direction:column;gap:6px;opacity:0;visibility:hidden;transform:translateY(6px);transition:opacity .15s,transform .15s,visibility 0s .15s;pointer-events:none}
+.row.dragging .scale-pop{opacity:1;visibility:visible;transform:none;transition:opacity .12s,transform .12s}
 .row-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.row-head > div{display:flex;align-items:baseline;gap:10px;min-width:0}
+.row-name{font-size:16px!important}
 .row-name{font-family:var(--display);font-weight:700;font-size:18px;display:flex;align-items:center;gap:8px}
 .dot{width:10px;height:10px;border-radius:50%;background:var(--c)}
 .row-today{color:var(--muted);font-size:13px}
@@ -110,7 +119,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,.track:focus-visib
 .target-edit .btn{padding:8px 12px}
 
 /* log */
-.section-h{display:flex;justify-content:space-between;align-items:baseline;margin:28px 0 8px}
+.section-h{display:flex;justify-content:space-between;align-items:baseline;margin:4px 0 4px}
 .section-h h2{font-size:20px}
 .section-h span{color:var(--muted);font-size:13px}
 .log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
@@ -122,7 +131,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,.track:focus-visib
 .empty{color:var(--muted);padding:14px 0;font-size:14px}
 
 /* toast */
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));width:min(488px,calc(100% - 32px));
+.toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(10px + env(safe-area-inset-top,0px));width:min(488px,calc(100% - 32px));
   background:var(--fg);color:var(--bg);border-radius:14px;padding:10px 10px 10px 16px;display:flex;align-items:center;gap:12px;z-index:20;box-shadow:0 6px 24px rgb(0 0 0 / .2)}
 .toast .msg{flex:1;min-width:0}
 .toast .prog{position:absolute;left:12px;right:12px;bottom:4px;height:2px;border-radius:1px;background:color-mix(in srgb,var(--bg) 40%,transparent);transform-origin:left}
@@ -239,10 +248,9 @@ details summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:14p
       </div>
     </header>
     <div class="bar" id="bar" aria-hidden="true"></div>
-    <div class="rows" id="rows"></div>
-
-    <div class="section-h"><h2>Today</h2><span id="count"></span></div>
+    <div class="section-h"><h2>Today</h2><button class="linkbtn" type="button" id="log-more" hidden></button><span id="count" hidden></span></div>
     <ul class="log" id="log"></ul>
+    <div class="rows" id="rows"></div>
   </section>
 
   <section id="view-cal" hidden>
@@ -545,8 +553,7 @@ CATS.forEach(c => {
   const el = document.createElement("div");
   el.className = "row"; el.style.setProperty("--c", `var(--c-${c.id})`);
   el.innerHTML = `<div class="row-head"><div><div class="row-name"><span class="dot"></span>${c.name}</div><div class="row-today num" data-today></div></div><div class="row-val zero num" data-val>0</div></div>
-    <div class="match num" aria-live="polite">Slide to log</div>
-    <div><div class="strip" aria-hidden="true"></div>
+    <div class="track-zone"><div class="scale-pop"><div class="match num" aria-live="polite"></div><div class="strip" aria-hidden="true"></div></div>
     <div class="track" tabindex="0" role="slider" aria-label="${c.name} calories" aria-valuemin="0" aria-valuemax="100"><div class="ticks"></div><div class="fill"></div><div class="thumb"></div></div></div>`;
   rowsEl.appendChild(el);
   const valEl = el.querySelector("[data-val]"), strip = el.querySelector(".strip"), match = el.querySelector(".match");
@@ -555,12 +562,12 @@ CATS.forEach(c => {
     const tol = Math.max(40, k*0.12);
     strip.querySelectorAll(".fitem").forEach(l => l.classList.toggle("near", k > 0 && k >= +l.dataset.lo - tol && k <= +l.dataset.hi + tol));
     const sg = k ? suggest(c.id,k) : null;
-    match.innerHTML = sg ? `≈ <b></b>` + sg.slice(1,3).map(() => ` · <span></span>`).join("") : (k ? "Barely anything" : "Slide to log");
+    match.innerHTML = sg ? `≈ <b></b>` + sg.slice(1,3).map(() => ` · <span></span>`).join("") : (k ? "Barely anything" : "Slide right to add");
     if (sg){ const parts = match.querySelectorAll("b,span"); sg.slice(0,3).forEach((x,i) => parts[i].textContent = `${cap(x.label)} (${fmt(x.val)})`); } };
   const slider = makeSlider(el.querySelector(".track"), {
-    onStart(){ if (pending && pending.cat !== c.id) commitPending(); if (pending && pending.cat === c.id) clearTimeout(pending.timer); strip.classList.add("active"); },
+    onStart(){ if (pending && pending.cat !== c.id) commitPending(); if (pending && pending.cat === c.id) clearTimeout(pending.timer); strip.classList.add("active"); el.classList.add("dragging"); },
     onMove: show,
-    onEnd(p){ strip.classList.remove("active"); const k = kcalAt(c.id,p); if (!k){ cancelPending(); return; } schedule(c.id,p,k); }
+    onEnd(p){ strip.classList.remove("active"); el.classList.remove("dragging"); const k = kcalAt(c.id,p); if (!k){ cancelPending(); return; } schedule(c.id,p,k); }
   });
   rows[c.id] = {el, slider, show, strip, today: el.querySelector("[data-today]")};
 });
@@ -598,6 +605,8 @@ $("#target-form").addEventListener("submit", async e => {
   savePrefs({target:v});
 });
 
+let logExpanded = false;
+$("#log-more").addEventListener("click", () => { logExpanded = !logExpanded; renderToday(); });
 const isToday = t => new Date(t).toDateString() === new Date().toDateString();
 function renderToday(){
   const today = state.entries.filter(e => isToday(e.at));
@@ -616,7 +625,10 @@ function renderToday(){
   });
   $("#count").textContent = today.length ? `${today.length} ${today.length===1?"entry":"entries"}` : "";
   const log = $("#log"); log.innerHTML = "";
-  if (!today.length){ log.innerHTML = `<li class="empty" style="display:block;border:0">Nothing yet. Drag a slider and let go; it logs after a few seconds unless you tap Undo.</li>`; return; }
+  if (!today.length){ $("#log-more").hidden = true; log.innerHTML = `<li class="empty" style="display:block;border:0">Nothing yet. Drag a slider below and let go; it logs after a few seconds unless you tap Undo.</li>`; return; }
+  const more = $("#log-more"); more.hidden = false;
+  more.textContent = logExpanded ? "Hide entries" : `${today.length} ${today.length===1?"entry":"entries"} ▾`;
+  if (!logExpanded) return;
   today.slice().reverse().forEach(e => {
     const c = CATS.find(x => x.id === e.cat) || {name:e.cat};
     const li = document.createElement("li");
