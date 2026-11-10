@@ -66,3 +66,7 @@ To work on it locally, serve the folder with any static server (for example `pyt
 - Calorie values are rough estimates, intended as mental anchors rather than nutrition data.
 - A home-screen web app can't add an iOS home-screen widget. That would need a native app.
 - There's no sync between devices. Use export and import to move data.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
