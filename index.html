@@ -76,15 +76,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,.track:focus-visib
 .pad .pname{font-size:13px;font-weight:600;color:var(--fg)}
 .pad .ptoday{font-size:11px;color:var(--muted);min-height:14px;font-variant-numeric:tabular-nums}
 .pads-hint{grid-column:1/-1;text-align:center;font-size:12px;color:var(--muted);margin-bottom:2px}
-.sheet{position:fixed;inset:0;z-index:40;background:var(--bg);display:flex;flex-direction:column;justify-content:space-between;
-  padding:calc(14px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
-.sh-top{display:flex;flex-direction:column;gap:6px}
-.sh-bottom{display:flex;flex-direction:column;gap:10px;padding-bottom:40px}
-.sheet .strip{font-size:14px;line-height:16px}
-.sheet .track{height:60px;border-radius:30px}
+.sheet{position:fixed;inset:0;z-index:40;background:var(--bg);pointer-events:none}
+.sh-top{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:8px}
+.sheet .strip{font-size:14px;line-height:16px;margin-top:10px}
+.sheet .track{position:absolute;height:60px;border-radius:30px}
 .sheet .fill{border-radius:30px}
 .sheet .thumb{top:8px}
-.sh-actions{display:flex;justify-content:space-between;align-items:center}
+.pad{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .vscale{position:fixed;inset:0;z-index:40;background:color-mix(in srgb,var(--bg) 98%,transparent);opacity:0;visibility:hidden;transition:opacity .12s,visibility 0s .12s;pointer-events:none}
 .vscale.on{opacity:1;visibility:visible;transition:opacity .08s}
 .vs-head{position:absolute;left:16px;right:16px;top:calc(12px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:4px}
@@ -405,16 +403,13 @@ details summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:14p
   <div class="status" id="status">Connecting…</div>
 </div>
 
-<div class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sh-name">
-  <div class="sh-top">
+<div class="sheet" id="sheet" hidden aria-live="polite">
+  <div class="sh-top" id="sh-top">
     <div class="vs-row"><span class="vs-name"><span class="dot"></span><span id="sh-name"></span></span><b class="vs-k" id="sh-k">0<small>kcal</small></b></div>
     <div class="match num" id="sh-match"></div>
-  </div>
-  <div class="sh-bottom">
     <div class="strip" id="sh-strip" aria-hidden="true"></div>
-    <div class="track" id="sh-track" tabindex="0" role="slider" aria-valuemin="0" aria-valuemax="100"><div class="ticks"></div><div class="fill"></div><div class="thumb"></div></div>
-    <div class="sh-actions"><span class="hint">Slide and let go to log</span><button class="btn ghost" type="button" id="sh-cancel">Cancel</button></div>
   </div>
+  <div class="track drag" id="sh-track"><div class="ticks"></div><div class="fill"></div><div class="thumb"></div></div>
 </div>
 <div class="toast" id="toast" hidden><span class="msg" id="toast-msg"></span><button id="toast-undo">Undo</button><span class="prog" id="toast-prog"></span></div>
 
@@ -601,11 +596,18 @@ function makeSlider(track, {onMove, onStart, onEnd}){
 const rowsEl = $("#rows"); const rows = {};
 let pending = null; // {cat, p, timer, started}
 
-// Five meal buttons in thumb reach. Tap one to open a full-width slider with the food scale above it.
-const sheet = $("#sheet"), shStrip = $("#sh-strip"), shTrack = $("#sh-track");
-let sheetCat = null;
-function sheetShow(p){
-  const cat = sheetCat, k = kcalAt(cat, p);
+// Five meal buttons in thumb reach. Press one and, without lifting, slide sideways: the buttons turn into
+// a slider under your finger and the food scale appears at the top. Let go to log; a press without sliding logs nothing.
+const sheet = $("#sheet"), shStrip = $("#sh-strip"), shTrack = $("#sh-track"), shTop = $("#sh-top");
+const shThumb = shTrack.querySelector(".thumb"), shFill = shTrack.querySelector(".fill");
+let drag = null;
+function setTrack(p){
+  shThumb.style.left = `calc(22px + (100% - 44px) * ${p})`;
+  shFill.style.width = `calc(44px + (100% - 44px) * ${p})`;
+}
+function sheetShow(cat, p){
+  const k = kcalAt(cat, p);
+  setTrack(p);
   $("#sh-k").innerHTML = `${fmt(k)}<small>kcal</small>`;
   const cur = shStrip.querySelector(".cursor"); if (cur) cur.style.left = `calc(22px + (100% - 44px) * ${p})`;
   const tol = Math.max(40, k*0.12);
@@ -614,40 +616,48 @@ function sheetShow(p){
   match.innerHTML = sg ? `≈ <b></b>` + sg.slice(1,3).map(() => ` · <span></span>`).join("") : (k ? "Barely anything" : "Slide right to add");
   if (sg){ const parts = match.querySelectorAll("b,span"); sg.slice(0,3).forEach((x,i) => parts[i].textContent = `${cap(x.label)} (${fmt(x.val)})`); }
 }
-const sheetSlider = makeSlider(shTrack, {
-  onStart(){ shStrip.classList.add("active"); },
-  onMove: sheetShow,
-  onEnd(p){
-    const k = kcalAt(sheetCat, p);
-    if (!k) return;              // a tap at zero keeps the sheet open
-    schedule(sheetCat, p, k); closeSheet();
-  }
-});
-function openSheet(cat){
+function startDrag(cat, e){
   if (pending) commitPending();
-  sheetCat = cat; const c = CATS.find(x => x.id === cat);
+  const c = CATS.find(x => x.id === cat);
+  const r = rowsEl.getBoundingClientRect(), knob = e.currentTarget.querySelector(".knob").getBoundingClientRect();
+  const left = r.left, width = r.width, top = knob.top + knob.height/2 - 30;
   sheet.style.setProperty("--c", `var(--c-${cat})`); shTrack.style.setProperty("--c", `var(--c-${cat})`);
-  $("#sh-name").textContent = c.name; shTrack.setAttribute("aria-label", `${c.name} calories`);
+  Object.assign(shTrack.style, {left: left + "px", width: width + "px", top: top + "px"});
+  Object.assign(shTop.style, {left: left + "px", width: width + "px"});
+  $("#sh-name").textContent = c.name;
   sheet.hidden = false;
-  sheetSlider.set(0); shStrip.classList.remove("active");
-  renderStrip(cat, shStrip, 14);
+  shStrip.classList.add("active");
+  renderStrip(cat, shStrip, Math.max(6, Math.min(16, Math.floor((top - shStrip.getBoundingClientRect().top - 16) / 19))));
   const box = shTrack.querySelector(".ticks"); box.innerHTML = "";
   ({snack:[100,250,500],breakfast:[250,500,800],lunch:[250,500,1000],dinner:[500,1000,1500],drinks:[100,250,500]})[cat].forEach(m => {
     if (m > curveOf(cat).max) return;
     const t = document.createElement("span"); t.className = "tick"; t.textContent = m;
     t.style.left = `calc(22px + (100% - 44px) * ${posFor(cat,m)})`; box.appendChild(t);
   });
-  sheetShow(0); shTrack.focus({preventScroll:true});
+  drag = {cat, left, width, startX: e.clientX, moved: false, p: 0};
+  moveDrag(e);
 }
-function closeSheet(){ sheet.hidden = true; sheetCat = null; }
-$("#sh-cancel").addEventListener("click", closeSheet);
-addEventListener("keydown", e => { if (e.key === "Escape" && !sheet.hidden) closeSheet(); });
+function moveDrag(e){
+  if (!drag) return;
+  if (Math.abs(e.clientX - drag.startX) > 6) drag.moved = true;
+  drag.p = clamp((e.clientX - drag.left - 22) / (drag.width - 44), 0, 1);
+  sheetShow(drag.cat, drag.p);
+}
+function endDrag(){
+  if (!drag) return;
+  const {cat, p, moved} = drag; drag = null; sheet.hidden = true;
+  const k = kcalAt(cat, p);
+  if (moved && k) schedule(cat, p, k);
+}
 CATS.forEach(c => {
   const b = document.createElement("button");
   b.className = "pad"; b.type = "button"; b.style.setProperty("--c", `var(--c-${c.id})`);
-  b.setAttribute("aria-label", `Log ${c.name.toLowerCase()}`);
+  b.setAttribute("aria-label", `Log ${c.name.toLowerCase()}: press and slide sideways`);
   b.innerHTML = `<span class="knob"></span><span class="pname">${c.name}</span><span class="ptoday" data-today></span>`;
-  b.addEventListener("click", () => openSheet(c.id));
+  b.addEventListener("contextmenu", e => e.preventDefault());
+  b.addEventListener("pointerdown", e => { e.preventDefault(); b.setPointerCapture(e.pointerId); startDrag(c.id, e); });
+  b.addEventListener("pointermove", moveDrag);
+  b.addEventListener("pointerup", endDrag); b.addEventListener("pointercancel", endDrag);
   rowsEl.appendChild(b);
   rows[c.id] = {el: b, slider: {set(){}}, show(){}, today: b.querySelector("[data-today]")};
 });
@@ -1326,14 +1336,14 @@ function useLocal(note){
   if (usedDb) return;
   store = localStore(); store.subscribe(onData); setStatus(note);
 }
-const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261110-0800"), 10000);
+const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261110-0803"), 10000);
 (window.claude ? window.claude.use("db") : Promise.resolve(null)).then(db => {
   clearTimeout(fallbackTimer);
-  if (!db){ useLocal("Saved on this device only · version 20261110-0800"); return; }
+  if (!db){ useLocal("Saved on this device only · version 20261110-0803"); return; }
   usedDb = true; store = dbStore(db);
   const slow = setTimeout(() => setStatus("Can't reach your saved data yet. New entries will sync when it reconnects."), 10000);
   store.subscribe(onData, e => { clearTimeout(slow); setStatus("Sync stopped. Reload the page to reconnect."); }, () => { clearTimeout(slow); setStatus("Synced to your account"); });
-}).catch(() => useLocal("Saved on this device only · version 20261110-0800"));
+}).catch(() => useLocal("Saved on this device only · version 20261110-0803"));
 })();
 </script>
 
