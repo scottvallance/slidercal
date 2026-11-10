@@ -68,14 +68,23 @@ button:focus-visible,input:focus-visible,select:focus-visible,.track:focus-visib
 .bar span{height:100%;transition:width .3s}
 
 /* slider rows */
-#view-today:not([hidden]){display:flex;flex-direction:column;min-height:calc(100svh - 170px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
+.first-screen{display:flex;flex-direction:column;min-height:calc(100svh - 128px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
 .rows{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:auto;padding-top:16px;padding-bottom:4px}
-.pad{display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:none;padding:6px 0;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;min-width:0}
+.pad{display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:none;padding:6px 0;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;min-width:0}
 .pad .knob{width:56px;height:56px;border-radius:50%;background:var(--c);box-shadow:0 3px 10px color-mix(in srgb,var(--c) 45%,transparent);display:grid;place-items:center;color:#fff;font-family:var(--display);font-weight:700;font-size:13px;transition:transform .12s}
 .pad.on .knob{transform:scale(1.1)}
 .pad .pname{font-size:13px;font-weight:600;color:var(--fg)}
 .pad .ptoday{font-size:11px;color:var(--muted);min-height:14px;font-variant-numeric:tabular-nums}
 .pads-hint{grid-column:1/-1;text-align:center;font-size:12px;color:var(--muted);margin-bottom:2px}
+.sheet{position:fixed;inset:0;z-index:40;background:var(--bg);display:flex;flex-direction:column;justify-content:space-between;
+  padding:calc(14px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.sh-top{display:flex;flex-direction:column;gap:6px}
+.sh-bottom{display:flex;flex-direction:column;gap:10px;padding-bottom:40px}
+.sheet .strip{font-size:14px;line-height:16px}
+.sheet .track{height:60px;border-radius:30px}
+.sheet .fill{border-radius:30px}
+.sheet .thumb{top:8px}
+.sh-actions{display:flex;justify-content:space-between;align-items:center}
 .vscale{position:fixed;inset:0;z-index:40;background:color-mix(in srgb,var(--bg) 98%,transparent);opacity:0;visibility:hidden;transition:opacity .12s,visibility 0s .12s;pointer-events:none}
 .vscale.on{opacity:1;visibility:visible;transition:opacity .08s}
 .vs-head{position:absolute;left:16px;right:16px;top:calc(12px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:4px}
@@ -148,7 +157,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,.track:focus-visib
 .target-edit .btn{padding:8px 12px}
 
 /* log */
-.section-h{display:flex;justify-content:space-between;align-items:baseline;margin:4px 0 4px}
+.section-h{display:flex;justify-content:space-between;align-items:baseline;margin:20px 0 4px}
 .section-h h2{font-size:20px}
 .section-h span{color:var(--muted);font-size:13px}
 .log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
@@ -263,6 +272,7 @@ details summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:14p
 
 <div class="wrap">
   <section id="view-today">
+    <div class="first-screen">
     <header class="top">
       <div>
         <div class="date" id="date"></div>
@@ -277,9 +287,10 @@ details summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:14p
       </div>
     </header>
     <div class="bar" id="bar" aria-hidden="true"></div>
-    <div class="section-h"><h2>Today</h2><button class="linkbtn" type="button" id="log-more" hidden></button><span id="count" hidden></span></div>
-    <ul class="log" id="log"></ul>
     <div class="rows" id="rows"></div>
+    </div>
+    <div class="section-h"><h2>Today</h2><span id="count"></span></div>
+    <ul class="log" id="log"></ul>
   </section>
 
   <section id="view-cal" hidden>
@@ -394,14 +405,16 @@ details summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:14p
   <div class="status" id="status">Connecting…</div>
 </div>
 
-<div class="vscale" id="vscale" aria-live="polite">
-  <div class="vs-head"><div class="vs-row"><span class="vs-name"><span class="dot"></span><span id="vs-name"></span></span><b class="vs-k" id="vs-k">0<small>kcal</small></b></div><div class="match num" id="vs-match"></div></div>
-  <div id="vs-body"></div>
-</div>
-<div class="scale-panel" id="scale-panel" aria-live="polite">
-  <div class="sp-head"><span class="sp-name"><span class="dot"></span><span id="sp-name"></span></span><b class="sp-k num" id="sp-k">0<small>kcal</small></b></div>
-  <div class="match num" id="sp-match"></div>
-  <div class="strip" id="sp-strip" aria-hidden="true"></div>
+<div class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sh-name">
+  <div class="sh-top">
+    <div class="vs-row"><span class="vs-name"><span class="dot"></span><span id="sh-name"></span></span><b class="vs-k" id="sh-k">0<small>kcal</small></b></div>
+    <div class="match num" id="sh-match"></div>
+  </div>
+  <div class="sh-bottom">
+    <div class="strip" id="sh-strip" aria-hidden="true"></div>
+    <div class="track" id="sh-track" tabindex="0" role="slider" aria-valuemin="0" aria-valuemax="100"><div class="ticks"></div><div class="fill"></div><div class="thumb"></div></div>
+    <div class="sh-actions"><span class="hint">Slide and let go to log</span><button class="btn ghost" type="button" id="sh-cancel">Cancel</button></div>
+  </div>
 </div>
 <div class="toast" id="toast" hidden><span class="msg" id="toast-msg"></span><button id="toast-undo">Undo</button><span class="prog" id="toast-prog"></span></div>
 
@@ -530,7 +543,7 @@ function suggest(cat, k){
   const mults = [[0.5,"half of "],[1,""],[2,"2 × "],[3,"3 × "]];
   list.forEach(([n,v,mine,ex,core]) => mults.forEach(([m,pre]) => {
     if (m === 0.5 && v < 250) return;
-    if (m > 1 && v > curveOf(cat).max * 0.25) return;
+    if (m > 1 && v > curveOf(cat).max * 0.15) return;
     const val = v*m;
     cands.push({label: pre + (m===1 ? n : n.replace(/^(a|an) /,"")), val, err: Math.abs(val-k)/k + (m===1?0:0.04) - (mine?0.04:0) + (core?0.08:0), keys:[n]});
   }));
@@ -540,6 +553,7 @@ function suggest(cat, k){
     if (ex.l && ex.l !== v) cands.push({label: "large " + n, val: ex.l, err: Math.abs(ex.l-k)/k - 0.03, keys:["l:"+n]});
   });
   for (let i=0;i<list.length;i++) for (let j=i+1;j<list.length;j++){
+    if (Math.min(list[i][1], list[j][1]) > curveOf(cat).max * 0.15) continue;   // main + side only
     const val = list[i][1]+list[j][1];
     cands.push({label: list[i][0] + " + " + list[j][0], val, err: Math.abs(val-k)/k + 0.06, keys:[list[i][0],list[j][0]]});
   }
@@ -587,89 +601,54 @@ function makeSlider(track, {onMove, onStart, onEnd}){
 const rowsEl = $("#rows"); const rows = {};
 let pending = null; // {cat, p, timer, started}
 
-{ const h = document.createElement("div"); h.className = "pads-hint"; h.textContent = "Press a meal and drag up"; rowsEl.appendChild(h); }
-// Five pads in thumb reach: press one and drag up. Higher = more calories; the food scale fills the screen above.
-const vs = $("#vscale"), vsBody = $("#vs-body");
-let vsState = null;
-function vsLayout(cat, x0, yBottom, yTop){
-  vsBody.innerHTML = "";
-  const W = innerWidth, travel = yBottom - yTop, Y = v => yBottom - posFor(cat, v) * travel;
-  const add = (cls, css) => { const d = document.createElement("div"); d.className = cls; Object.assign(d.style, css); vsBody.appendChild(d); return d; };
-  add("vs-rail", {left: x0 + "px", top: yTop + "px", height: travel + "px"});
-  const fill = add("vs-fill", {left: x0 + "px", top: yBottom + "px", height: "0px"});
-  const marks = {snack:[100,250,500],breakfast:[250,500,800],lunch:[250,500,1000],dinner:[500,1000,1500],drinks:[100,250,500]}[cat];
-  marks.forEach(m => { if (m > curveOf(cat).max) return; const t = add("vs-tick", {left: x0 + "px", top: Y(m) + "px"}); t.innerHTML = `<span>${m}</span>`; });
-  // labels in two columns beside the rail, placed coverage-first like the horizontal scale
-  const H = 20, leftW = x0 - 30, rightW = W - x0 - 30;
-  const cols = {l: [], r: []};
-  const cands = stripCandidates(cat).map(c => ({...c, y: Y(c.v)}));
-  const placed = new Set(), labels = [];
-  const fits = (side, y) => cols[side].every(o => Math.abs(o - y) >= H);
-  const place = c => {
-    if (placed.has(c)) return false;
-    const w = textW(c.label) * 14/12 + 14;
-    const sides = (rightW >= leftW ? ["r","l"] : ["l","r"]).filter(sd => (sd === "r" ? rightW : leftW) >= Math.min(w, 90));
-    for (const sd of sides){
-      if (!fits(sd, c.y)) continue;
-      cols[sd].push(c.y); placed.add(c);
-      const el = add("vs-label " + sd + (c.mine ? " mine" : ""), {top: c.y + "px", maxWidth: (sd === "r" ? rightW : leftW) + "px"});
-      if (sd === "r") el.style.left = (x0 + 16) + "px"; else el.style.right = (W - x0 + 16) + "px";
-      el.textContent = c.label; el.dataset.v = c.v; labels.push(el);
-      return true;
-    }
-    return false;
-  };
-  const BINS = Math.max(4, Math.floor(travel / 44));
-  for (let k = 0; k < BINS; k++){
-    const hi = yBottom - travel * k / BINS, lo = yBottom - travel * (k+1) / BINS, mid = (hi + lo) / 2;
-    cands.filter(c => c.y <= hi && c.y > lo).sort((a,b) => a.tier - b.tier || Math.abs(a.y-mid) - Math.abs(b.y-mid)).some(place);
-  }
-  [0,1,2,3].forEach(t => cands.filter(c => c.tier === t).map((c,i) => [c, vdc(i)]).sort((a,b) => a[1]-b[1]).forEach(([c]) => place(c)));
-  const thumb = add("vs-thumb", {left: x0 + "px", top: yBottom + "px"});
-  return {fill, thumb, labels, travel, yBottom};
-}
-function vsShow(cat, p){
-  const k = kcalAt(cat, p), st = vsState;
-  const y = st.yBottom - p * st.travel;
-  st.fill.style.top = y + "px"; st.fill.style.height = (st.yBottom - y) + "px"; st.thumb.style.top = y + "px";
-  $("#vs-k").innerHTML = `${fmt(k)}<small>kcal</small>`;
+// Five meal buttons in thumb reach. Tap one to open a full-width slider with the food scale above it.
+const sheet = $("#sheet"), shStrip = $("#sh-strip"), shTrack = $("#sh-track");
+let sheetCat = null;
+function sheetShow(p){
+  const cat = sheetCat, k = kcalAt(cat, p);
+  $("#sh-k").innerHTML = `${fmt(k)}<small>kcal</small>`;
+  const cur = shStrip.querySelector(".cursor"); if (cur) cur.style.left = `calc(22px + (100% - 44px) * ${p})`;
   const tol = Math.max(40, k*0.12);
-  st.labels.forEach(l => l.classList.toggle("near", k > 0 && Math.abs(+l.dataset.v - k) <= tol));
-  const sg = k ? suggest(cat,k) : null, match = $("#vs-match");
-  match.innerHTML = sg ? `≈ <b></b>` + sg.slice(1,3).map(() => ` · <span></span>`).join("") : (k ? "Barely anything" : "Drag up to add");
+  shStrip.querySelectorAll(".fitem").forEach(l => l.classList.toggle("near", k > 0 && k >= +l.dataset.lo - tol && k <= +l.dataset.hi + tol));
+  const sg = k ? suggest(cat,k) : null, match = $("#sh-match");
+  match.innerHTML = sg ? `≈ <b></b>` + sg.slice(1,3).map(() => ` · <span></span>`).join("") : (k ? "Barely anything" : "Slide right to add");
   if (sg){ const parts = match.querySelectorAll("b,span"); sg.slice(0,3).forEach((x,i) => parts[i].textContent = `${cap(x.label)} (${fmt(x.val)})`); }
 }
+const sheetSlider = makeSlider(shTrack, {
+  onStart(){ shStrip.classList.add("active"); },
+  onMove: sheetShow,
+  onEnd(p){
+    const k = kcalAt(sheetCat, p);
+    if (!k) return;              // a tap at zero keeps the sheet open
+    schedule(sheetCat, p, k); closeSheet();
+  }
+});
+function openSheet(cat){
+  if (pending) commitPending();
+  sheetCat = cat; const c = CATS.find(x => x.id === cat);
+  sheet.style.setProperty("--c", `var(--c-${cat})`); shTrack.style.setProperty("--c", `var(--c-${cat})`);
+  $("#sh-name").textContent = c.name; shTrack.setAttribute("aria-label", `${c.name} calories`);
+  sheet.hidden = false;
+  sheetSlider.set(0); shStrip.classList.remove("active");
+  renderStrip(cat, shStrip, 14);
+  const box = shTrack.querySelector(".ticks"); box.innerHTML = "";
+  ({snack:[100,250,500],breakfast:[250,500,800],lunch:[250,500,1000],dinner:[500,1000,1500],drinks:[100,250,500]})[cat].forEach(m => {
+    if (m > curveOf(cat).max) return;
+    const t = document.createElement("span"); t.className = "tick"; t.textContent = m;
+    t.style.left = `calc(22px + (100% - 44px) * ${posFor(cat,m)})`; box.appendChild(t);
+  });
+  sheetShow(0); shTrack.focus({preventScroll:true});
+}
+function closeSheet(){ sheet.hidden = true; sheetCat = null; }
+$("#sh-cancel").addEventListener("click", closeSheet);
+addEventListener("keydown", e => { if (e.key === "Escape" && !sheet.hidden) closeSheet(); });
 CATS.forEach(c => {
   const b = document.createElement("button");
   b.className = "pad"; b.type = "button"; b.style.setProperty("--c", `var(--c-${c.id})`);
-  b.setAttribute("aria-label", `${c.name}: press and drag up to log calories`);
+  b.setAttribute("aria-label", `Log ${c.name.toLowerCase()}`);
   b.innerHTML = `<span class="knob"></span><span class="pname">${c.name}</span><span class="ptoday" data-today></span>`;
+  b.addEventListener("click", () => openSheet(c.id));
   rowsEl.appendChild(b);
-  let startY = 0, p = 0, active = false;
-  b.addEventListener("contextmenu", e => e.preventDefault());
-  b.addEventListener("pointerdown", e => {
-    e.preventDefault();
-    if (pending && pending.cat !== c.id) commitPending();
-    if (pending && pending.cat === c.id) clearTimeout(pending.timer);
-    active = true; b.setPointerCapture(e.pointerId); b.classList.add("on");
-    const r = b.getBoundingClientRect();
-    const x0 = clamp(r.left + r.width/2, 70, innerWidth - 70);
-    startY = e.clientY;
-    const yBottom = r.top + 28, yTop = Math.max(yBottom - 520, 150 + (parseFloat(getComputedStyle(document.documentElement).paddingTop) || 0));
-    vs.style.setProperty("--c", `var(--c-${c.id})`); $("#vs-name").textContent = c.name;
-    vsState = vsLayout(c.id, x0, yBottom, yTop);
-    p = 0; vsShow(c.id, 0); vs.classList.add("on");
-  });
-  b.addEventListener("pointermove", e => {
-    if (!active) return;
-    p = clamp((startY - e.clientY) / vsState.travel, 0, 1);
-    vsShow(c.id, p);
-  });
-  const end = () => {
-    if (!active) return; active = false; b.classList.remove("on"); vs.classList.remove("on");
-    const k = kcalAt(c.id, p); if (!k){ cancelPending(); return; } schedule(c.id, p, k);
-  };
-  b.addEventListener("pointerup", end); b.addEventListener("pointercancel", end);
   rows[c.id] = {el: b, slider: {set(){}}, show(){}, today: b.querySelector("[data-today]")};
 });
 
@@ -706,8 +685,6 @@ $("#target-form").addEventListener("submit", async e => {
   savePrefs({target:v});
 });
 
-let logExpanded = true;
-$("#log-more").addEventListener("click", () => { logExpanded = !logExpanded; renderToday(); });
 const isToday = t => new Date(t).toDateString() === new Date().toDateString();
 function renderToday(){
   const today = state.entries.filter(e => isToday(e.at));
@@ -726,10 +703,7 @@ function renderToday(){
   });
   $("#count").textContent = today.length ? `${today.length} ${today.length===1?"entry":"entries"}` : "";
   const log = $("#log"); log.innerHTML = "";
-  if (!today.length){ $("#log-more").hidden = true; log.innerHTML = `<li class="empty" style="display:block;border:0">Nothing yet. Drag a slider below and let go; it logs after a few seconds unless you tap Undo.</li>`; return; }
-  const more = $("#log-more"); more.hidden = false;
-  more.textContent = logExpanded ? "Hide entries" : `${today.length} ${today.length===1?"entry":"entries"} ▾`;
-  if (!logExpanded) return;
+  if (!today.length){ log.innerHTML = `<li class="empty" style="display:block;border:0">Nothing yet. Tap a meal above, slide, and let go; it logs after a few seconds unless you tap Undo.</li>`; return; }
   today.slice().reverse().forEach(e => {
     const c = CATS.find(x => x.id === e.cat) || {name:e.cat};
     const li = document.createElement("li");
@@ -773,10 +747,10 @@ function stripCandidates(cat){
     const A = mineItems[i], B = mineItems[j];
     const a = (A[3] && A[3].short) || shortName(A[0]), b = lc((B[3] && B[3].short) || shortName(B[0]));
     // only main + side/add-on pairs (toast + butter), never two mains
-    if (Math.min(A[1], B[1]) <= max * 0.25 && (a + b).length <= 22) add(`${a} + ${b}`, A[1] + B[1], 3, true);
+    if (Math.min(A[1], B[1]) <= max * 0.15 && (a + b).length <= 22) add(`${a} + ${b}`, A[1] + B[1], 3, true);
   }
   // doubles of small things (2 x beer, 2 x toast)
-  mineItems.forEach(([n,v,m,ex]) => { if (v <= max * 0.25) add(`2 × ${lc((ex && ex.short) || shortName(n))}`, v*2, 3, true); });
+  mineItems.forEach(([n,v,m,ex]) => { if (v <= max * 0.15) add(`2 × ${lc((ex && ex.short) || shortName(n))}`, v*2, 3, true); });
   return out;
 }
 function renderStrip(cat, strip, LANES = 4){
@@ -1352,14 +1326,14 @@ function useLocal(note){
   if (usedDb) return;
   store = localStore(); store.subscribe(onData); setStatus(note);
 }
-const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261110-0754"), 10000);
+const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261110-0800"), 10000);
 (window.claude ? window.claude.use("db") : Promise.resolve(null)).then(db => {
   clearTimeout(fallbackTimer);
-  if (!db){ useLocal("Saved on this device only · version 20261110-0754"); return; }
+  if (!db){ useLocal("Saved on this device only · version 20261110-0800"); return; }
   usedDb = true; store = dbStore(db);
   const slow = setTimeout(() => setStatus("Can't reach your saved data yet. New entries will sync when it reconnects."), 10000);
   store.subscribe(onData, e => { clearTimeout(slow); setStatus("Sync stopped. Reload the page to reconnect."); }, () => { clearTimeout(slow); setStatus("Synced to your account"); });
-}).catch(() => useLocal("Saved on this device only · version 20261110-0754"));
+}).catch(() => useLocal("Saved on this device only · version 20261110-0800"));
 })();
 </script>
 
