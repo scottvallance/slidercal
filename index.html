@@ -637,7 +637,7 @@ function startDrag(cat, e){
   shStrip.classList.add("active");
   // full-width slider; the value starts wherever your thumb lands on it
   // inset from both edges (more on the far side) so the whole range is in comfortable thumb reach
-  const FAR = 84, NEAR = 60, tl = left + (mirror ? FAR : NEAR), tw = width - FAR - NEAR;
+  const FAR = 40, NEAR = 40, tl = left + (mirror ? FAR : NEAR), tw = width - FAR - NEAR;
   drag = {cat, mirror, left: tl, width: tw, startX: e.clientX, moved: false, p: 0};
   Object.assign(shTrack.style, {left: tl + "px", width: tw + "px", top: top + "px"});
   renderStrip(cat, shStrip, Math.max(6, Math.min(16, Math.floor((top - shStrip.getBoundingClientRect().top - 16) / 19))), mirror);
