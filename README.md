@@ -1,20 +1,20 @@
 # Slidecal
 
-A calorie tracker built around one idea: **logging should take two seconds.** You don't search for foods or weigh portions. There's a slider for each meal (snack, breakfast, lunch, dinner, drinks), and you drag it to roughly what you just ate.
+A calorie tracker built around one idea: **logging should take two seconds.** You don't search for foods or weigh portions. There's a button for each meal (snack, breakfast, lunch, dinner, drinks) along the bottom of the screen. Press one and drag up to roughly what you just ate.
 
-Every slider shows a scale of familiar foods placed at their calorie values, so you can see at a glance that a flat white is down here and a big bowl of carbonara is up there. The estimate doesn't have to be exact. It just has to be quick enough that you actually do it.
+While you drag, a scale of familiar foods fills the screen, each placed at its calorie value, so you can see at a glance that a flat white is down here and a big bowl of carbonara is up there. The estimate doesn't have to be exact. It just has to be quick enough that you actually do it.
 
 **Try it:** https://scottvallance.github.io/slidercal/
 
 ## Features
 
-- **Slide to log.** Let go and the entry logs after a few seconds, with an Undo in case you slipped.
-- **A food scale on every slider.** It uses your own foods first, adds big portions and common combos, and falls back to a built-in list wherever your foods leave a gap.
+- **Press and drag up to log.** All five meals sit in thumb reach. Let go and the entry logs after a few seconds, with an Undo in case you slipped.
+- **A food scale while you drag.** It uses your own foods first, adds big portions and common combos, and falls back to a built-in list wherever your foods leave a gap.
 - **Your foods.** List what you usually eat, and an AI chat of your choice fills in similar foods and estimates small, usual and large servings (see below).
 - **Calibration.** Place known foods on the slider by feel. The app fits each meal's curve to your sense of scale.
 - **History.** Stacked charts of the last 14 days or 12 weeks against your daily target, with a table view.
 - **Private by design.** No account, no server, no tracking. Everything stays on your device.
-- **Works offline** once installed.
+- **Works offline** once installed. When a new version is out, an **Update** button appears at the bottom of the Log screen; nothing changes until you tap it.
 
 ## Install on your phone
 
