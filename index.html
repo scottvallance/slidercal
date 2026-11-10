@@ -173,7 +173,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,.track:focus-visib
   background:var(--fg);color:var(--bg);border-radius:14px;padding:10px 10px 10px 16px;display:flex;align-items:center;gap:12px;z-index:20;box-shadow:0 6px 24px rgb(0 0 0 / .2)}
 .toast .msg{flex:1;min-width:0}
 .toast .prog{position:absolute;left:12px;right:12px;bottom:4px;height:2px;border-radius:1px;background:color-mix(in srgb,var(--bg) 40%,transparent);transform-origin:left}
-.toast button{border:0;background:var(--bg);color:var(--fg);border-radius:10px;padding:8px 14px;font-weight:600;cursor:pointer}
+.toast button{touch-action:manipulation;border:0;background:var(--bg);color:var(--fg);border-radius:10px;padding:8px 14px;font-weight:600;cursor:pointer}
 
 /* nav */
 .nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:flex;justify-content:center;gap:8px;z-index:15;
@@ -710,6 +710,8 @@ async function commitPending(){
   try { await store.addEntry({cat, pos:+p.toFixed(4), kcal:k, at:Date.now()}); }
   catch(e){ setStatus("Couldn't save that entry. Check your connection and try again."); }
 }
+// iOS can swallow the first tap's click right after a drag, so undo acts on the touch itself
+$("#toast-undo").addEventListener("pointerdown", e => { e.preventDefault(); cancelPending(); });
 $("#toast-undo").addEventListener("click", cancelPending);
 $("#target-btn").addEventListener("click", () => {
   $("#target-btn").hidden = true; $("#target-form").hidden = false;
@@ -1365,14 +1367,14 @@ function useLocal(note){
   if (usedDb) return;
   store = localStore(); store.subscribe(onData); setStatus(note);
 }
-const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261110-0807"), 10000);
+const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261110-0808"), 10000);
 (window.claude ? window.claude.use("db") : Promise.resolve(null)).then(db => {
   clearTimeout(fallbackTimer);
-  if (!db){ useLocal("Saved on this device only · version 20261110-0807"); return; }
+  if (!db){ useLocal("Saved on this device only · version 20261110-0808"); return; }
   usedDb = true; store = dbStore(db);
   const slow = setTimeout(() => setStatus("Can't reach your saved data yet. New entries will sync when it reconnects."), 10000);
   store.subscribe(onData, e => { clearTimeout(slow); setStatus("Sync stopped. Reload the page to reconnect."); }, () => { clearTimeout(slow); setStatus("Synced to your account"); });
-}).catch(() => useLocal("Saved on this device only · version 20261110-0807"));
+}).catch(() => useLocal("Saved on this device only · version 20261110-0808"));
 })();
 </script>
 
