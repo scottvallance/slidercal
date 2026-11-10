@@ -69,8 +69,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,.track:focus-visib
 
 /* slider rows */
 .first-screen{display:flex;flex-direction:column;min-height:calc(100svh - 128px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
-.rows{position:relative;height:300px;margin-top:auto;margin-bottom:4px}
-.rows .pad{position:absolute;width:76px;margin:-34px 0 0 -38px;padding:0}
+.rows{position:relative;height:240px;margin-top:auto;margin-bottom:4px}
+.rows .pad{position:absolute;display:block;width:48px;height:48px;margin:-24px 0 0 -24px;padding:0}
+.rows .pad .knob{width:48px;height:48px}
+.rows .plab{position:absolute;display:flex;flex-direction:column;white-space:nowrap;pointer-events:none;line-height:1.2}
 .hand-btn{position:absolute;top:0;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer}
 .pad{display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:none;padding:6px 0;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;min-width:0}
 .pad .knob{width:52px;height:52px;border-radius:50%;background:var(--c);box-shadow:0 3px 10px color-mix(in srgb,var(--c) 45%,transparent);display:grid;place-items:center;color:#fff;font-family:var(--display);font-weight:700;font-size:13px;transition:transform .12s}
@@ -664,7 +666,7 @@ CATS.forEach(c => {
   const b = document.createElement("button");
   b.className = "pad"; b.type = "button"; b.style.setProperty("--c", `var(--c-${c.id})`);
   b.setAttribute("aria-label", `Log ${c.name.toLowerCase()}: press and slide away from the corner`);
-  b.innerHTML = `<span class="knob"></span><span class="pname">${c.name}</span><span class="ptoday" data-today></span>`;
+  b.innerHTML = `<span class="knob"></span><span class="plab"><span class="pname">${c.name}</span><span class="ptoday" data-today></span></span>`;
   b.addEventListener("contextmenu", e => e.preventDefault());
   b.addEventListener("pointerdown", e => { e.preventDefault(); b.setPointerCapture(e.pointerId); startDrag(c.id, e); });
   b.addEventListener("pointermove", moveDrag);
@@ -679,14 +681,19 @@ rowsEl.appendChild(handBtn);
 // quarter-circle fan around the corner: snack at the top of the arc, drinks along the bottom
 function layoutStar(){
   const W = rowsEl.clientWidth, H = rowsEl.clientHeight; if (!W) return;
-  const right = hand() === "right", R = Math.min(200, W - 150);
-  const cx = right ? W - 22 : 22, cy = H - 46;
+  const right = hand() === "right", R = 150, side = right ? 1 : -1;
+  const cx = right ? W - 6 : 6, cy = H - 6;
   CATS.forEach((c, i) => {
-    const a = (92 + i * (86 / 4)) * Math.PI / 180;   // 92° .. 178°
-    const x = cx + (right ? 1 : -1) * R * Math.cos(a), y = cy - R * Math.sin(a);
-    Object.assign(rows[c.id].el.style, {left: clamp(x, 40, W - 40) + "px", top: clamp(y, 40, H - 34) + "px"});
+    const deg = 96 + i * (78 / 4), a = deg * Math.PI / 180;   // 96° .. 174°, snack on top, drinks along the bottom
+    const ux = side * Math.cos(a), uy = -Math.sin(a);           // unit vector from the corner out to the button
+    const el = rows[c.id].el;
+    Object.assign(el.style, {left: (cx + ux * R) + "px", top: (cy + uy * R) + "px"});
+    // name sits just outside the arc, pointing away from the corner
+    const lab = el.querySelector(".plab"), d = 30;
+    Object.assign(lab.style, {left: (24 + ux * d) + "px", top: (24 + uy * d) + "px",
+      transform: `translate(${(ux - 1) * 50}%, ${(uy - 1) * 50}%)`, alignItems: ux < -0.3 ? "flex-end" : ux > 0.3 ? "flex-start" : "center"});
   });
-  handBtn.textContent = right ? "Left-handed?" : "Right-handed?";
+  handBtn.textContent = right ? "⇆ Move to left" : "Move to right ⇆";
   handBtn.style.left = right ? "0" : "auto"; handBtn.style.right = right ? "auto" : "0";
 }
 addEventListener("resize", layoutStar);
@@ -1367,14 +1374,14 @@ function useLocal(note){
   if (usedDb) return;
   store = localStore(); store.subscribe(onData); setStatus(note);
 }
-const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261110-0808"), 10000);
+const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261110-0811"), 10000);
 (window.claude ? window.claude.use("db") : Promise.resolve(null)).then(db => {
   clearTimeout(fallbackTimer);
-  if (!db){ useLocal("Saved on this device only · version 20261110-0808"); return; }
+  if (!db){ useLocal("Saved on this device only · version 20261110-0811"); return; }
   usedDb = true; store = dbStore(db);
   const slow = setTimeout(() => setStatus("Can't reach your saved data yet. New entries will sync when it reconnects."), 10000);
   store.subscribe(onData, e => { clearTimeout(slow); setStatus("Sync stopped. Reload the page to reconnect."); }, () => { clearTimeout(slow); setStatus("Synced to your account"); });
-}).catch(() => useLocal("Saved on this device only · version 20261110-0808"));
+}).catch(() => useLocal("Saved on this device only · version 20261110-0811"));
 })();
 </script>
 

@@ -8,7 +8,7 @@ While you slide, a scale of familiar foods fills the top of the screen, each pla
 
 ## Features
 
-- **Press a meal, slide, let go.** All five meals sit in a thumb-reach arc, for left or right hands, and the press point becomes the start of a slider under your finger. Let go and the entry logs after a few seconds, with an Undo in case you slipped.
+- **Press a meal, slide, let go.** All five meals sit in a thumb-reach arc, on whichever side you prefer, and the press point becomes the start of a slider under your finger. Let go and the entry logs after a few seconds, with an Undo in case you slipped.
 - **A food scale while you drag.** It uses your own foods first, adds big portions and common combos, and falls back to a built-in list wherever your foods leave a gap.
 - **Your foods.** List what you usually eat, and an AI chat of your choice fills in similar foods and estimates small, usual and large servings (see below).
 - **Calibration.** Place known foods on the slider by feel. The app fits each meal's curve to your sense of scale.
