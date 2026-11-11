@@ -202,7 +202,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,.track:focus-visib
 .flabel{color:var(--fg)!important;font-weight:500}
 .flabel.mine{font-weight:600}
 .strip.active .flabel.near{font-weight:800;background:color-mix(in srgb,var(--c) 22%,var(--surface))}
-.strip .cursor{position:absolute;top:0;bottom:-4px;width:2px;margin-left:-1px;background:var(--c);border-radius:1px;opacity:0}
+.strip .cursor{position:absolute;z-index:2;top:0;bottom:-4px;width:2px;margin-left:-1px;background:var(--c);border-radius:1px;opacity:0}
 .strip.active .cursor{opacity:1}
 .match{height:20px;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .match b{color:var(--fg);font-weight:600}
@@ -1467,14 +1467,14 @@ function useLocal(note){
   if (usedDb) return;
   store = localStore(); store.subscribe(onData); setStatus(note);
 }
-const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261111-052520"), 10000);
+const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261111-053207"), 10000);
 (window.claude ? window.claude.use("db") : Promise.resolve(null)).then(db => {
   clearTimeout(fallbackTimer);
-  if (!db){ useLocal("Saved on this device only · version 20261111-052520"); return; }
+  if (!db){ useLocal("Saved on this device only · version 20261111-053207"); return; }
   usedDb = true; store = dbStore(db);
   const slow = setTimeout(() => setStatus("Can't reach your saved data yet. New entries will sync when it reconnects."), 10000);
   store.subscribe(onData, e => { clearTimeout(slow); setStatus("Sync stopped. Reload the page to reconnect."); }, () => { clearTimeout(slow); setStatus("Synced to your account"); });
-}).catch(() => useLocal("Saved on this device only · version 20261111-052520"));
+}).catch(() => useLocal("Saved on this device only · version 20261111-053207"));
 })();
 </script>
 
