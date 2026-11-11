@@ -14,6 +14,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="preload" href="fonts/dm-sans.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
 <style>
 :root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{margin:0;font:14px system-ui,-apple-system,sans-serif}
@@ -23,8 +25,59 @@ img{max-width:100%}
 </head>
 <body>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap">
+<style>
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 500;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(fonts/bricolage-grotesque.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 700;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(fonts/bricolage-grotesque.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 800;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(fonts/bricolage-grotesque.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(fonts/dm-sans.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(fonts/dm-sans.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(fonts/dm-sans.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+</style>
 <style>
 /* Layout: one-thumb phone app. Header total, five full-width slider rows, today's log; calibrate tab with fit chart. Fixed bottom tab bar. */
 :root{
@@ -82,7 +135,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,.track:focus-visib
 .pads-hint{grid-column:1/-1;text-align:center;font-size:12px;color:var(--muted);margin-bottom:2px}
 .sheet{position:fixed;inset:0;z-index:40;background:var(--bg);pointer-events:none}
 .sh-top{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:8px}
-.sheet .strip{font-size:14px;line-height:16px;margin-top:10px}
+.sheet .strip{font-size:17px;line-height:22px;margin-top:12px}
 .sheet .track{position:absolute;height:60px;border-radius:30px}
 .sheet .fill{border-radius:30px}
 .sheet .thumb{top:8px}
@@ -135,10 +188,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,.track:focus-visib
 .tick::before{content:"";position:absolute;left:50%;bottom:14px;width:1px;height:6px;background:var(--muted);opacity:.5}
 .strip{position:relative;height:60px;margin:0 0 2px;font-size:12px;line-height:14px;pointer-events:none}
 .fitem{transition:opacity .15s,color .15s}
-.flabel{position:absolute;z-index:1;white-space:nowrap;transform:translateX(-50%);color:var(--muted);background:var(--surface);padding:0 3px;border-radius:4px;transition:opacity .15s,color .15s}
-.flabel::after{content:"";position:absolute;left:50%;bottom:-1px;width:3px;height:3px;margin-left:-1.5px;border-radius:50%;background:currentColor;opacity:.6}
+.flabel{position:absolute;z-index:1;white-space:nowrap;color:var(--muted);background:var(--surface);padding:1px 6px 1px 18px;border-radius:6px;transition:opacity .15s,color .15s}
+.flabel::before{content:"";position:absolute;left:5px;top:50%;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:var(--c,currentColor)}
+.flabel.flip{padding:1px 18px 1px 6px}
+.flabel.flip::before{left:auto;right:5px}
 .flabel.mine{color:var(--fg);font-weight:600}
-.flabel.has-range::after{display:none}
+.flabel.has-range::before{display:none}
 .frange{position:absolute;height:20px;color:var(--muted)}
 .frange.mine{color:var(--fg)}
 .frange::before{content:"";position:absolute;left:0;right:0;top:16px;height:1.5px;background:currentColor;opacity:.45}
@@ -529,6 +584,27 @@ function savePrefs(patch){
   store.setPrefs(state.prefs).catch(() => setStatus("Couldn't save that change. Try again in a moment."));
 }
 
+// ---------- foods eaten by the piece ----------
+// [match, one, many, kcal each]. A food on your list that matches shows as counts ("10 almonds") instead of a vague handful.
+const PIECES = [
+  [/almond/i, "almond", "almonds", 7], [/cashew/i, "cashew", "cashews", 9], [/walnut/i, "walnut", "walnuts", 26],
+  [/peanuts\b|^nuts\b|mixed nuts/i, "nut", "nuts", 6], [/macadamia/i, "macadamia", "macadamias", 20], [/pistachio/i, "pistachio", "pistachios", 4],
+  [/brazil nut/i, "Brazil nut", "Brazil nuts", 33], [/dried apricot/i, "dried apricot", "dried apricots", 17], [/\bdates?\b/i, "date", "dates", 66],
+  [/prune/i, "prune", "prunes", 23], [/grape(?!fruit)/i, "grape", "grapes", 3], [/strawberr/i, "strawberry", "strawberries", 4],
+  [/cherr(y|ies)(?! tomato)/i, "cherry", "cherries", 5], [/jelly bean/i, "jelly bean", "jelly beans", 4], [/lollies|gummy|gummies/i, "lolly", "lollies", 20],
+  [/chocolate bits|choc bits|chocolate chips/i, "choc bit", "choc bits", 5], [/squares? of chocolate|chocolate squares?/i, "square of chocolate", "squares of chocolate", 25],
+  [/rice cakes?/i, "rice cake", "rice cakes", 35], [/rice crackers?/i, "rice cracker", "rice crackers", 8], [/water crackers?|wafer crackers?/i, "cracker", "crackers", 18],
+  [/malteser/i, "Malteser", "Maltesers", 10], [/m&ms?|m & ms?/i, "M&M", "M&Ms", 4], [/nuggets?/i, "nugget", "nuggets", 48],
+  [/dumplings?|gyoza/i, "dumpling", "dumplings", 45], [/olives?/i, "olive", "olives", 5], [/popcorn/i, "cup of popcorn", "cups of popcorn", 31]
+];
+function piecesOf(name){ const m = PIECES.find(x => x[0].test(name)); return m ? {one: m[1], many: m[2], each: m[3]} : null; }
+const countLabel = (pc, n) => `${n} ${n === 1 ? pc.one : pc.many}`;
+// a few counts spread over the food's usual range
+function countsFor(pc, max){
+  const steps = pc.each < 10 ? [10, 20, 30] : pc.each < 30 ? [3, 6, 10] : [1, 2, 4];
+  return steps.filter(n => n * pc.each >= 20 && n * pc.each <= max * 0.6);
+}
+
 // ---------- suggestions ----------
 function suggest(cat, k){
   if (k < 15) return null;
@@ -543,11 +619,17 @@ function suggest(cat, k){
   list.forEach(([n,v,mine,ex,core]) => mults.forEach(([m,pre]) => {
     if (m === 0.5 && v < 250) return;
     if (m > 1 && v > curveOf(cat).max * 0.15) return;
+    if (m !== 1 && piecesOf(n)) return;
     const val = v*m;
     cands.push({label: pre + (m===1 ? n : n.replace(/^(a|an) /,"")), val, err: Math.abs(val-k)/k + (m===1?0:0.04) - (mine?0.04:0) + (core?0.08:0), keys:[n]});
   }));
+  list.forEach(([n,v,mine]) => {
+    const pc = piecesOf(n); if (!pc) return;
+    const c = Math.round(k / pc.each); if (c < 2 || c > (pc.each < 10 ? 40 : 15)) return;
+    cands.push({label: countLabel(pc, c), val: c * pc.each, err: Math.abs(c*pc.each-k)/k + 0.02 - (mine?0.04:0), keys:[n]});
+  });
   list.forEach(([n,v,mine,ex]) => {
-    if (!ex) return;
+    if (!ex || piecesOf(n)) return;
     if (ex.s && ex.s !== v) cands.push({label: "small " + n, val: ex.s, err: Math.abs(ex.s-k)/k - 0.03, keys:["s:"+n]});
     if (ex.l && ex.l !== v) cands.push({label: "large " + n, val: ex.l, err: Math.abs(ex.l-k)/k - 0.03, keys:["l:"+n]});
   });
@@ -618,7 +700,8 @@ function sheetShow(cat, p){
   setTrack(p, mirror);
   $("#sh-k").innerHTML = `${fmt(k)}<small>kcal</small>`;
   const cur = shStrip.querySelector(".cursor");
-  if (cur) cur.style.left = mirror ? `calc(100% - 22px - (100% - 44px) * ${p})` : `calc(22px + (100% - 44px) * ${p})`;
+  const ins = (drag && drag.inset) || 22;
+  if (cur) cur.style.left = mirror ? `calc(100% - ${ins}px - (100% - ${2*ins}px) * ${p})` : `calc(${ins}px + (100% - ${2*ins}px) * ${p})`;
   const tol = Math.max(40, k*0.12);
   shStrip.querySelectorAll(".fitem").forEach(l => l.classList.toggle("near", k > 0 && k >= +l.dataset.lo - tol && k <= +l.dataset.hi + tol));
   const sg = k ? suggest(cat,k) : null, match = $("#sh-match");
@@ -637,10 +720,10 @@ function startDrag(cat, e){
   shStrip.classList.add("active");
   // full-width slider; the value starts wherever your thumb lands on it
   // inset from both edges (more on the far side) so the whole range is in comfortable thumb reach
-  const FAR = 60, NEAR = 60, tl = left + (mirror ? FAR : NEAR), tw = width - FAR - NEAR;
-  drag = {cat, mirror, left: tl, width: tw, startX: e.clientX, moved: false, p: 0};
+  const FAR = 60, NEAR = 60, tl = left + (mirror ? FAR : NEAR), tw = width - FAR - NEAR;  // keep FAR = NEAR: the scale axis assumes symmetric insets
+  drag = {cat, mirror, inset: 60 + 22, left: tl, width: tw, startX: e.clientX, moved: false, p: 0};
   Object.assign(shTrack.style, {left: tl + "px", width: tw + "px", top: top + "px"});
-  renderStrip(cat, shStrip, Math.max(6, Math.min(16, Math.floor((top - shStrip.getBoundingClientRect().top - 16) / 19))), mirror);
+  renderStrip(cat, shStrip, Math.max(4, Math.min(8, Math.floor((top - shStrip.getBoundingClientRect().top - 16) / 26))), mirror, 10, 60 + 22);
   const box = shTrack.querySelector(".ticks"); box.innerHTML = "";
   ({snack:[100,250,500],breakfast:[250,500,800],lunch:[250,500,1000],dinner:[500,1000,1500],drinks:[100,250,500]})[cat].forEach(m => {
     if (m > curveOf(cat).max) return;
@@ -782,7 +865,11 @@ function lc(t){ return t.length > 1 && t[1] === t[1].toLowerCase() ? t[0].toLowe
 function stripCandidates(cat){
   const max = curveOf(cat).max, out = [], own = myFoods(cat), seen = new Set();
   const add = (label, v, tier, mine) => { if (v < 20 || v > max || seen.has(label)) return; seen.add(label); out.push({label, v, tier, mine}); };
-  own.forEach(([n,v,m,ex]) => add((ex && ex.short) || shortName(n), v, m ? 0 : 2, !!m));
+  own.forEach(([n,v,m,ex]) => {
+    const pc = piecesOf(n);
+    if (pc){ countsFor(pc, max).forEach(c => add(cap(countLabel(pc, c)), c * pc.each, m ? 0 : 2, !!m)); return; }
+    add((ex && ex.short) || shortName(n), v, m ? 0 : 2, !!m);
+  });
   own.forEach(([n,v,m,ex]) => {
     if (!ex) return; const base = lc(ex.short || shortName(n));
     if (ex.l && ex.l > v*1.2) add("Big " + base, ex.l, 1, true);
@@ -796,39 +883,44 @@ function stripCandidates(cat){
     const A = mineItems[i], B = mineItems[j];
     const a = (A[3] && A[3].short) || shortName(A[0]), b = lc((B[3] && B[3].short) || shortName(B[0]));
     // only main + side/add-on pairs (toast + butter), never two mains
-    if (Math.min(A[1], B[1]) <= max * 0.15 && (a + b).length <= 22) add(`${a} + ${b}`, A[1] + B[1], 3, true);
+    if (Math.min(A[1], B[1]) <= max * 0.15 && (a + b).length <= 22 && !piecesOf(A[0]) && !piecesOf(B[0])) add(`${a} + ${b}`, A[1] + B[1], 3, true);
   }
   // doubles of small things (2 x beer, 2 x toast)
-  mineItems.forEach(([n,v,m,ex]) => { if (v <= max * 0.15) add(`2 × ${lc((ex && ex.short) || shortName(n))}`, v*2, 3, true); });
+  mineItems.forEach(([n,v,m,ex]) => { if (v <= max * 0.15 && !piecesOf(n)) add(`2 × ${lc((ex && ex.short) || shortName(n))}`, v*2, 3, true); });
   return out;
 }
-function renderStrip(cat, strip, LANES = 4, mirror = false){
+function renderStrip(cat, strip, LANES = 4, mirror = false, LIMIT = 99, INSET = 22){
   if (!strip) return;
   const W = strip.clientWidth;
   if (!W) return;
-  const LANE_H = 19, GAP = 8, inner = W - 44;
-  const X = v => mirror ? W - (22 + inner * posFor(cat, v)) : 22 + inner * posFor(cat, v);
-  const cands = stripCandidates(cat).map(c => { const w = textW(c.label) * 13/12 + 8, x = X(c.v), cx = clamp(x, w/2, W - w/2); return {...c, x, a: cx - w/2, b: cx + w/2, cx}; });
+  const fs = parseFloat(getComputedStyle(strip).fontSize) || 12, LANE_H = Math.round(fs * 1.5), GAP = Math.round(fs * 0.6), inner = W - 2 * INSET;
+  const X = v => mirror ? W - (INSET + inner * posFor(cat, v)) : INSET + inner * posFor(cat, v);
+  // each label starts at its dot, which sits exactly on the food's value; near the right edge the label flips to the dot's left
+  const cands = stripCandidates(cat).map(c => {
+    const w = textW(c.label) * fs / 12 + 26, x = X(c.v), flip = x + w - 9 > W;
+    const a = flip ? x - w + 9 : x - 9;
+    return {...c, x, w, flip, a: Math.max(0, a), b: Math.max(0, a) + w};
+  });
   const lanes = Array.from({length:LANES}, () => []);
   strip.innerHTML = `<div class="cursor"></div>`;
-  let used = 0; const placed = new Set();
+  let used = 0, count = 0; const placed = new Set();
   const tryPlace = c => {
-    if (placed.has(c)) return false;
+    if (placed.has(c) || count >= LIMIT) return false;
     for (let li = LANES-1; li >= 0; li--){
       if (!lanes[li].every(([s0,e0]) => c.b + GAP <= s0 || c.a >= e0 + GAP)) continue;
-      lanes[li].push([c.a,c.b]); placed.add(c); used = Math.max(used, LANES - li);
+      lanes[li].push([c.a,c.b]); placed.add(c); used = Math.max(used, LANES - li); count++;
       const el = document.createElement("span");
-      el.className = "flabel fitem" + (c.mine ? " mine" : "");
+      el.className = "flabel fitem" + (c.mine ? " mine" : "") + (c.flip ? " flip" : "");
       el.dataset.lo = el.dataset.hi = c.v; el.textContent = c.label;
-      el.style.left = c.cx + "px"; el.dataset.lane = li;
+      el.style.left = c.a + "px"; el.dataset.lane = li;
       strip.appendChild(el); return true;
     }
     return false;
   };
   // Pass 1: one anchor per stretch of the slider, so the whole range has a reference point.
-  const BINS = Math.max(4, Math.floor(inner / 52));
+  const BINS = Math.max(4, Math.floor(inner / (fs * 4.5)));
   for (let k = 0; k < BINS; k++){
-    const lo = 22 + inner * k / BINS, hi = 22 + inner * (k+1) / BINS, mid = (lo + hi) / 2;
+    const lo = INSET + inner * k / BINS, hi = INSET + inner * (k+1) / BINS, mid = (lo + hi) / 2;
     cands.filter(c => c.x >= lo && c.x < hi).sort((p,q) => p.tier - q.tier || Math.abs(p.x-mid) - Math.abs(q.x-mid)).some(tryPlace);
   }
   // Pass 2: fill remaining room, best tier first, spread out within each tier.
@@ -1375,14 +1467,14 @@ function useLocal(note){
   if (usedDb) return;
   store = localStore(); store.subscribe(onData); setStatus(note);
 }
-const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261110-084100"), 10000);
+const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261111-052520"), 10000);
 (window.claude ? window.claude.use("db") : Promise.resolve(null)).then(db => {
   clearTimeout(fallbackTimer);
-  if (!db){ useLocal("Saved on this device only · version 20261110-084100"); return; }
+  if (!db){ useLocal("Saved on this device only · version 20261111-052520"); return; }
   usedDb = true; store = dbStore(db);
   const slow = setTimeout(() => setStatus("Can't reach your saved data yet. New entries will sync when it reconnects."), 10000);
   store.subscribe(onData, e => { clearTimeout(slow); setStatus("Sync stopped. Reload the page to reconnect."); }, () => { clearTimeout(slow); setStatus("Synced to your account"); });
-}).catch(() => useLocal("Saved on this device only · version 20261110-084100"));
+}).catch(() => useLocal("Saved on this device only · version 20261111-052520"));
 })();
 </script>
 

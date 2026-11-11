@@ -59,6 +59,7 @@ To work on it locally, serve the folder with any static server (for example `pyt
 | `manifest.webmanifest` | App name, colours and icons for home-screen installs |
 | `sw.js` | Caches the app so it opens offline |
 | `icon-*.png`, `apple-touch-icon.png` | Home-screen icons |
+| `fonts/` | Bricolage Grotesque and DM Sans (SIL Open Font License), bundled so the app loads fast and offline |
 | `.nojekyll` | Tells GitHub Pages to serve the files as they are |
 
 ## Limitations
