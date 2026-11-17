@@ -520,6 +520,9 @@ const U = () => isKJ() ? "kJ" : "kcal";
 const toU = k => isKJ() ? Math.round(k * KJ_PER_KCAL / 10) * 10 : Math.round(k);
 const fromU = v => isKJ() ? Math.round(v / KJ_PER_KCAL) : Math.round(v);
 const fmt = n => toU(n).toLocaleString("en-US");
+const unitWord = () => isKJ() ? "kilojoules" : "kilocalories";
+// an AI answer's numbers are in the unit the prompt asked for (or the one the answer declares)
+const answerToKcal = (v, unit) => { v = +v; if (!(v > 0)) return null; return Math.round((unit || U()) === "kJ" ? v / KJ_PER_KCAL : v); };
 const clamp = (v,a,b) => Math.min(b,Math.max(a,v));
 const round10 = k => k < 30 ? Math.round(k/5)*5 : Math.round(k/10)*10;
 
@@ -1112,9 +1115,10 @@ function drawChart(cur, f, pts){
   const ymax = Math.max(cur.max, f ? f.max : 0, ...pts.map(p => p.kcal)) * 1.08;
   const xs = p => L + p*(W-L-R), ys = k => H-B - k/ymax*(H-T-B);
   const path = c => { let d=""; for(let i=0;i<=60;i++){ const p=i/60; d += (i?"L":"M") + xs(p).toFixed(1) + " " + ys(c.max*Math.pow(p,c.g)).toFixed(1); } return d; };
-  const step = ymax > 1500 ? 500 : ymax > 700 ? 250 : 100;
+  const uf = isKJ() ? KJ_PER_KCAL : 1, ymaxU = ymax * uf;
+  const step = isKJ() ? (ymaxU > 6000 ? 2000 : ymaxU > 3000 ? 1000 : 500) : (ymax > 1500 ? 500 : ymax > 700 ? 250 : 100);
   let g = "";
-  for (let k=0;k<=ymax;k+=step) g += `<line x1="${L}" x2="${W-R}" y1="${ys(k)}" y2="${ys(k)}" stroke="var(--line)"/><text x="${L-6}" y="${ys(k)+4}" text-anchor="end" font-size="10" fill="var(--muted)">${fmt(k)}</text>`;
+  for (let u=0;u<=ymaxU;u+=step){ const k = u / uf; g += `<line x1="${L}" x2="${W-R}" y1="${ys(k)}" y2="${ys(k)}" stroke="var(--line)"/><text x="${L-6}" y="${ys(k)+4}" text-anchor="end" font-size="10" fill="var(--muted)">${u.toLocaleString("en-US")}</text>`; }
   [0,.25,.5,.75,1].forEach(p => g += `<text x="${xs(p)}" y="${H-B+16}" text-anchor="middle" font-size="10" fill="var(--muted)">${p*100}%</text>`);
   g += `<text x="${(L+W-R)/2}" y="${H-2}" text-anchor="middle" font-size="10" fill="var(--muted)">slider position</text>`;
   g += `<path d="${path(cur)}" fill="none" stroke="var(--fg)" stroke-width="2"/>`;
@@ -1211,10 +1215,10 @@ function renderSetupMeal(cat){
   setupRows[cat].forEach((r,i) => {
     const li = document.createElement("li");
     li.innerHTML = `<div class="srow-top"><input data-f="n" aria-label="Food name" placeholder="Food">${r.related ? `<span class="tag rel">similar</span>` : ""}<button class="x" aria-label="Remove">×</button></div>
-      <div class="sizes">${["s","m","l"].map(z => `<label>${{s:"Small",m:"Usual",l:"Large"}[z]}<input data-f="${z}" type="number" inputmode="numeric" min="0" max="5000" aria-label="${{s:"Small",m:"Usual",l:"Large"}[z]} kcal"></label>`).join("")}</div>`;
+      <div class="sizes">${["s","m","l"].map(z => `<label>${{s:"Small",m:"Usual",l:"Large"}[z]}<input data-f="${z}" type="number" inputmode="numeric" min="0" aria-label="${{s:"Small",m:"Usual",l:"Large"}[z]} ${U()}"></label>`).join("")}</div>`;
     li.querySelectorAll("input").forEach(inp => {
-      const f = inp.dataset.f; inp.value = r[f] ?? "";
-      inp.addEventListener("input", () => { r[f] = f === "n" ? inp.value : (inp.value === "" ? null : Math.round(+inp.value)); if (f === "n") r.short = null; });
+      const f = inp.dataset.f; inp.value = f === "n" ? (r[f] ?? "") : (r[f] ? toU(r[f]) : "");
+      inp.addEventListener("input", () => { r[f] = f === "n" ? inp.value : (inp.value === "" ? null : fromU(+inp.value)); if (f === "n") r.short = null; });
     });
     li.querySelector(".x").addEventListener("click", () => { setupRows[cat].splice(i,1); renderSetupMeal(cat); });
     ul.appendChild(li);
@@ -1241,7 +1245,7 @@ function parseJsonArray(text){
 }
 function chatPrompt(){
   const texts = setupTexts();
-  const lines = CATS.map(c => `- ${c.id} (slider goes up to ${curveOf(c.id).max} kcal): ${texts[c.id] || "(not given; suggest typical items that fit the rest of their list)"}`).join("\n");
+  const lines = CATS.map(c => `- ${c.id} (slider goes up to ${fmt(curveOf(c.id).max)} ${U()}): ${texts[c.id] || "(not given; suggest typical items that fit the rest of their list)"}`).join("\n");
   return `I'm setting up a calorie-tracking app. Each meal has a slider, and the slider shows foods I actually eat as reference points. Here's what I usually have:
 
 ${lines}
@@ -1251,16 +1255,16 @@ For each meal, list 14 to 20 items:
 - More items I'd plausibly have for that meal, matching my style, cuisine and any dietary pattern you can see (for example keep it gluten free if I mention gluten free), with "related": true.
 - Together the items should cover the whole slider fairly evenly, from light up to the slider's top. For the upper end include fuller plates and combinations I'd really have together (for example "toast with butter and jam", "bolognese with garlic bread", "two glasses of red wine").
 
-For every item estimate kilocalories for a small ("s"), usual ("m") and large ("l") serving, and give "short", a label of at most 16 characters.
+For every item estimate ${unitWord()} (${U()}) for a small ("s"), usual ("m") and large ("l") serving, and give "short", a label of at most 16 characters.
 
 Reply with only one JSON object in a code block, keyed by meal, exactly in this shape:
-{"snack": [{"name": "...", "short": "...", "s": 0, "m": 0, "l": 0, "related": false}], "breakfast": [], "lunch": [], "dinner": [], "drinks": []}`;
+{"unit": "${U()}", "snack": [{"name": "...", "short": "...", "s": 0, "m": 0, "l": 0, "related": false}], "breakfast": [], "lunch": [], "dinner": [], "drinks": []}`;
 }
-function addBuiltRows(cat, arr){
+function addBuiltRows(cat, arr, unit){
   let n = 0;
   (arr || []).forEach(x => {
     if (!x || !x.name) return;
-    const r = {n:String(x.name).slice(0,60), short:x.short ? String(x.short).slice(0,20) : null, s:Math.round(+x.s)||null, m:Math.round(+x.m)||null, l:Math.round(+x.l)||null, related:!!x.related};
+    const r = {n:String(x.name).slice(0,60), short:x.short ? String(x.short).slice(0,20) : null, s:answerToKcal(x.s, unit), m:answerToKcal(x.m, unit), l:answerToKcal(x.l, unit), related:!!x.related};
     if (!r.m) r.m = r.s || r.l; if (!r.m) return;
     const i = setupRows[cat].findIndex(y => (y.n||"").toLowerCase() === r.n.toLowerCase());
     if (i >= 0) setupRows[cat][i] = r; else setupRows[cat].push(r);
@@ -1276,7 +1280,7 @@ function applyChatAnswer(){
   let total = 0;
   CATS.forEach(c => {
     const arr = d[c.id] || d[c.name] || d[c.name.toLowerCase()];
-    const n = addBuiltRows(c.id, Array.isArray(arr) ? arr : []);
+    const n = addBuiltRows(c.id, Array.isArray(arr) ? arr : [], /^kj$/i.test(d.unit || "") ? "kJ" : /^kcal$/i.test(d.unit || "") ? "kcal" : null);
     if (n){ total += n; $("#s-text-" + c.id).value = ""; renderSetupMeal(c.id); }
   });
   $("#s-answer").value = ""; updateSetupButtons();
@@ -1293,16 +1297,16 @@ $("#s-copy").addEventListener("click", () => {
 $("#s-apply").addEventListener("click", applyChatAnswer);
 function mealPrompt(c, text){
   const max = curveOf(c.id).max;
-  return `You help set up a calorie-tracking app. For ${c.name.toLowerCase()}, the person drags a slider from 0 to ${max} kcal, and the slider shows a scale of foods they actually eat as reference points.
+  return `You help set up a calorie-tracking app. For ${c.name.toLowerCase()}, the person drags a slider from 0 to ${fmt(max)} ${U()}, and the slider shows a scale of foods they actually eat as reference points.
 
 They said they usually have: """${text}"""
 
 Return a JSON array of 14 to 20 items:
 - Every food or drink they mentioned, as separate items, with "related": false.
 - More items they would plausibly have for ${c.name.toLowerCase()}, matching their style, cuisine and any dietary pattern you can see (for example keep it gluten free if they mention gluten free), with "related": true.
-- Together the items must cover the whole range fairly evenly, from about ${Math.round(max*0.05)} kcal up to about ${max} kcal. For the upper part, include fuller plates and the combinations they would really have together (for example "toast with butter and jam", "bolognese with garlic bread", "two glasses of red wine"), not just single ingredients.
+- Together the items must cover the whole range fairly evenly, from about ${fmt(max*0.05)} ${U()} up to about ${fmt(max)} ${U()}. For the upper part, include fuller plates and the combinations they would really have together (for example "toast with butter and jam", "bolognese with garlic bread", "two glasses of red wine"), not just single ingredients.
 
-For each item estimate kilocalories for a small ("s"), usual ("m") and large ("l") serving, and give "short", a label of at most 16 characters (for example "Bolognese", "Toast & jam").
+For each item estimate ${unitWord()} (${U()}) for a small ("s"), usual ("m") and large ("l") serving, and give "short", a label of at most 16 characters (for example "Bolognese", "Toast & jam").
 
 Reply with only the JSON array: [{"name": "...", "short": "...", "s": 0, "m": 0, "l": 0, "related": false}]`;
 }
@@ -1325,7 +1329,7 @@ async function buildFoods(){
     if (!arr){ failed.push(c.name); if (lastErr && lastErr.code === "not_granted") break; continue; }
     arr.forEach(x => {
       if (!x || !x.name) return;
-      const r = {n:String(x.name).slice(0,60), short:x.short ? String(x.short).slice(0,20) : null, s:Math.round(+x.s)||null, m:Math.round(+x.m)||null, l:Math.round(+x.l)||null, related:!!x.related};
+      const r = {n:String(x.name).slice(0,60), short:x.short ? String(x.short).slice(0,20) : null, s:answerToKcal(x.s), m:answerToKcal(x.m), l:answerToKcal(x.l), related:!!x.related};
       if (!r.m) return;
       const i = setupRows[c.id].findIndex(y => (y.n||"").toLowerCase() === r.n.toLowerCase());
       if (i >= 0) setupRows[c.id][i] = r; else setupRows[c.id].push(r);
@@ -1538,14 +1542,14 @@ function useLocal(note){
   if (usedDb) return;
   store = localStore(); store.subscribe(onData); setStatus(note);
 }
-const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261117-040037"), 10000);
+const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261117-040505"), 10000);
 (window.claude ? window.claude.use("db") : Promise.resolve(null)).then(db => {
   clearTimeout(fallbackTimer);
-  if (!db){ useLocal("Saved on this device only · version 20261117-040037"); return; }
+  if (!db){ useLocal("Saved on this device only · version 20261117-040505"); return; }
   usedDb = true; store = dbStore(db);
   const slow = setTimeout(() => setStatus("Can't reach your saved data yet. New entries will sync when it reconnects."), 10000);
   store.subscribe(onData, e => { clearTimeout(slow); setStatus("Sync stopped. Reload the page to reconnect."); }, () => { clearTimeout(slow); setStatus("Synced to your account"); });
-}).catch(() => useLocal("Saved on this device only · version 20261117-040037"));
+}).catch(() => useLocal("Saved on this device only · version 20261117-040505"));
 })();
 </script>
 

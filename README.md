@@ -13,7 +13,7 @@ While you slide, a scale of familiar foods fills the top of the screen, each pla
 - **Your foods.** List what you usually eat, and an AI chat of your choice fills in similar foods and estimates small, usual and large servings (see below).
 - **Calibration.** Place known foods on the slider by feel. The app fits each meal's curve to your sense of scale.
 - **Fill in missed days.** Step back with the arrows beside the date to add a meal you forgot. The app always reopens on today.
-- **kcal or kJ.** Pick your unit under Settings on the History tab.
+- **kcal or kJ.** Pick your unit under Settings on the History tab. Every screen, including food setup and the AI prompt, follows it.
 - **History.** Stacked charts of the last 14 days or 12 weeks against your daily target, with a table view.
 - **Private by design.** No account, no server, no tracking. Everything stays on your device.
 - **Works offline** once installed. When a new version is out, an **Update** button appears at the bottom of the Log screen; nothing changes until you tap it.
