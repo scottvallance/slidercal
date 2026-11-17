@@ -113,6 +113,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,.track:focus-visib
 /* header */
 .top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding-block:4px 14px}
 .date{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.08em}
+.daynav{display:flex;align-items:center;gap:2px;margin-left:-10px}
+.daynav button{border:0;background:none;color:var(--muted);font-size:22px;line-height:1;width:34px;height:34px;border-radius:50%;cursor:pointer;touch-action:manipulation}
+.daynav button:disabled{opacity:.25;cursor:default}
+.daynav .day-today{width:auto;height:auto;font-size:12px;font-weight:600;padding:5px 10px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--fg);margin-left:6px}
+.past .date{color:var(--fg);font-weight:600}
+.settings .srow{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px}
+.settings .seg{margin:0}
 .total{font-family:var(--display);font-weight:800;font-size:44px;line-height:1;letter-spacing:-.02em}
 .total small{font-size:15px;font-weight:500;color:var(--muted);letter-spacing:0;margin-left:4px}
 .budget{text-align:right;color:var(--muted);font-size:13px}
@@ -332,13 +339,13 @@ details summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:14p
     <div class="first-screen">
     <header class="top">
       <div>
-        <div class="date" id="date"></div>
+        <div class="daynav"><button type="button" id="day-prev" aria-label="Previous day">‹</button><span class="date" id="date"></span><button type="button" id="day-next" aria-label="Next day">›</button><button type="button" class="day-today" id="day-today" hidden>Today</button></div>
         <div class="total num" id="total">0<small>kcal</small></div>
       </div>
       <div class="budget">
         <button class="budget-btn" id="target-btn" aria-label="Change daily target">Left of <u class="num" id="target-l">2,000</u><b class="num" id="left">2,000</b></button>
         <form class="target-edit" id="target-form" hidden>
-          <input id="target-in" type="number" inputmode="numeric" min="500" max="6000" step="50" aria-label="Daily target in kcal">
+          <input id="target-in" type="number" inputmode="numeric" step="10" aria-label="Daily target">
           <button class="btn" type="submit">Set</button>
         </form>
       </div>
@@ -346,7 +353,7 @@ details summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:14p
     <div class="bar" id="bar" aria-hidden="true"></div>
     <div class="rows" id="rows"></div>
     </div>
-    <div class="section-h"><h2>Today</h2><span id="count"></span></div>
+    <div class="section-h"><h2 id="log-h">Today</h2><span id="count"></span></div>
     <ul class="log" id="log"></ul>
   </section>
 
@@ -367,7 +374,7 @@ details summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:14p
       <div id="known-ui" hidden>
         <div class="fields">
           <input id="k-name" placeholder="What was it? e.g. Thai green curry" autocomplete="off">
-          <input id="k-kcal" type="number" inputmode="numeric" placeholder="kcal" min="0" max="5000">
+          <input id="k-kcal" type="number" inputmode="numeric" placeholder="kcal" min="0" data-unit-ph>
         </div>
       </div>
       <div class="track" id="cal-track" tabindex="0" role="slider" aria-label="Calibration slider" aria-valuemin="0" aria-valuemax="100">
@@ -408,6 +415,14 @@ details summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:14p
       <details><summary>Show as table</summary><div class="table-scroll"><table class="htable" id="h-table"></table></div></details>
     </div>
 
+    <div class="card settings" style="margin-top:16px">
+      <h3>Settings</h3>
+      <div class="srow"><span>Energy units</span>
+        <div class="seg" id="s-unit" role="group" aria-label="Energy units"><button data-unit="kcal" aria-pressed="true">kcal</button><button data-unit="kJ" aria-pressed="false">kJ</button></div></div>
+      <div class="srow"><span>Meal buttons</span>
+        <div class="seg" id="s-hand" role="group" aria-label="Meal button side"><button data-hand="left" aria-pressed="false">Left</button><button data-hand="right" aria-pressed="true">Right</button></div></div>
+    </div>
+
     <div class="card backup" style="margin-top:16px">
       <h3>Backup</h3>
       <p class="hint" style="margin:0">Save everything (log, foods, calibration, target) as a file, or bring a backup in from another copy of the app.</p>
@@ -427,7 +442,7 @@ details summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:14p
     <div class="card">
       <form class="fields" id="food-form">
         <input id="f-name" placeholder="Add a food, e.g. my usual chicken wrap" autocomplete="off" required>
-        <input id="f-kcal" type="number" inputmode="numeric" placeholder="kcal" min="1" max="5000" required>
+        <input id="f-kcal" type="number" inputmode="numeric" placeholder="kcal" min="1" required data-unit-ph>
         <button class="btn" type="submit" style="grid-column:1/-1">Add to <span id="f-cat">Lunch</span></button>
       </form>
       <button class="btn ghost" id="f-setup">Set up usual <span id="f-cat2">lunch</span> foods</button>
@@ -498,7 +513,13 @@ const FOODS = {
 };
 
 const $ = s => document.querySelector(s);
-const fmt = n => Math.round(n).toLocaleString("en-US");
+// Everything is stored in kcal; kJ is a display choice (Settings on the History tab).
+const KJ_PER_KCAL = 4.184;
+const isKJ = () => { try { return state.prefs.unit === "kJ"; } catch(e){ return false; } };
+const U = () => isKJ() ? "kJ" : "kcal";
+const toU = k => isKJ() ? Math.round(k * KJ_PER_KCAL / 10) * 10 : Math.round(k);
+const fromU = v => isKJ() ? Math.round(v / KJ_PER_KCAL) : Math.round(v);
+const fmt = n => toU(n).toLocaleString("en-US");
 const clamp = (v,a,b) => Math.min(b,Math.max(a,v));
 const round10 = k => k < 30 ? Math.round(k/5)*5 : Math.round(k/10)*10;
 
@@ -562,7 +583,7 @@ function onData(d){
     firstRunChecked = true;
     if (!state.prefs.setupV2Done && !CATS.some(c => customOf(c.id).length)) setTimeout(() => openSetup(0), 0);
   }
-  renderToday(); renderTicks(); renderCal(); renderFoods(); layoutStar();
+  renderToday(); renderTicks(); renderCal(); renderFoods(); layoutStar(); renderSettings();
   if (!$("#view-history").hidden) renderHistory();
 }
 // Foods offered for a meal: built-ins you haven't switched off, your own, and meals you calibrated with real numbers.
@@ -698,7 +719,7 @@ function setTrack(p, mirror){
 function sheetShow(cat, p){
   const k = kcalAt(cat, p), mirror = drag && drag.mirror;
   setTrack(p, mirror);
-  $("#sh-k").innerHTML = `${fmt(k)}<small>kcal</small>`;
+  $("#sh-k").innerHTML = `${fmt(k)}<small>${U()}</small>`;
   const cur = shStrip.querySelector(".cursor");
   const ins = (drag && drag.inset) || 22;
   if (cur) cur.style.left = mirror ? `calc(100% - ${ins}px - (100% - ${2*ins}px) * ${p})` : `calc(${ins}px + (100% - ${2*ins}px) * ${p})`;
@@ -725,9 +746,11 @@ function startDrag(cat, e){
   Object.assign(shTrack.style, {left: tl + "px", width: tw + "px", top: top + "px"});
   renderStrip(cat, shStrip, Math.max(4, Math.min(8, Math.floor((top - shStrip.getBoundingClientRect().top - 16) / 26))), mirror, 10, 60 + 22);
   const box = shTrack.querySelector(".ticks"); box.innerHTML = "";
-  ({snack:[100,250,500],breakfast:[250,500,800],lunch:[250,500,1000],dinner:[500,1000,1500],drinks:[100,250,500]})[cat].forEach(m => {
+  const marks = isKJ() ? {snack:[500,1000,2000],breakfast:[1000,2000,3000],lunch:[1000,2000,4000],dinner:[2000,4000,6000],drinks:[500,1000,2000]}
+                       : {snack:[100,250,500],breakfast:[250,500,800],lunch:[250,500,1000],dinner:[500,1000,1500],drinks:[100,250,500]};
+  marks[cat].map(u => [u, isKJ() ? u / KJ_PER_KCAL : u]).forEach(([label, m]) => {
     if (m > curveOf(cat).max) return;
-    const t = document.createElement("span"); t.className = "tick"; t.textContent = m;
+    const t = document.createElement("span"); t.className = "tick"; t.textContent = label.toLocaleString("en-US");
     const pos = `(100% - 44px) * ${posFor(cat,m)}`;
     t.style.left = mirror ? `calc(100% - 22px - ${pos})` : `calc(22px + ${pos})`; box.appendChild(t);
   });
@@ -760,7 +783,7 @@ CATS.forEach(c => {
 });
 const handBtn = document.createElement("button");
 handBtn.className = "hand-btn"; handBtn.type = "button";
-handBtn.addEventListener("click", () => { savePrefs({hand: hand() === "right" ? "left" : "right"}); layoutStar(); });
+handBtn.addEventListener("click", () => { savePrefs({hand: hand() === "right" ? "left" : "right"}); layoutStar(); renderSettings(); });
 rowsEl.appendChild(handBtn);
 // quarter-circle fan around the corner: snack at the top of the arc, drinks along the bottom
 function layoutStar(){
@@ -784,8 +807,8 @@ addEventListener("resize", layoutStar);
 
 function schedule(cat,p,k){
   if (pending) clearTimeout(pending.timer);
-  pending = {cat,p,k,timer:setTimeout(commitPending, COMMIT_MS)};
-  $("#toast-msg").innerHTML = `Logging <b>${CATS.find(c=>c.id===cat).name}</b> · <span class="num">${fmt(k)}</span> kcal`;
+  pending = {cat,p,k,at:entryTime(cat),timer:setTimeout(commitPending, COMMIT_MS)};
+  $("#toast-msg").innerHTML = `Logging <b>${CATS.find(c=>c.id===cat).name}</b> · <span class="num">${fmt(k)}</span> ${U()}${dayLabelSuffix()}`;
   const t = $("#toast"); t.hidden = false;
   const prog = $("#toast-prog");
   prog.style.transition = "none"; prog.style.transform = "scaleX(1)";
@@ -796,9 +819,9 @@ function cancelPending(){ if (!pending) return; clearTimeout(pending.timer); res
 async function commitPending(){
   if (!pending) return;
   if (!store){ clearTimeout(pending.timer); pending.timer = setTimeout(commitPending, 500); return; }
-  const {cat,p,k} = pending; clearTimeout(pending.timer); pending = null;
+  const {cat,p,k,at} = pending; clearTimeout(pending.timer); pending = null;
   $("#toast").hidden = true; resetRow(cat);
-  try { await store.addEntry({cat, pos:+p.toFixed(4), kcal:k, at:Date.now()}); }
+  try { await store.addEntry({cat, pos:+p.toFixed(4), kcal:k, at}); }
   catch(e){ setStatus("Couldn't save that entry. Check your connection and try again."); }
 }
 // iOS can swallow the first tap's click right after a drag, so undo acts on the touch itself
@@ -806,23 +829,47 @@ $("#toast-undo").addEventListener("pointerdown", e => { e.preventDefault(); canc
 $("#toast-undo").addEventListener("click", cancelPending);
 $("#target-btn").addEventListener("click", () => {
   $("#target-btn").hidden = true; $("#target-form").hidden = false;
-  const i = $("#target-in"); i.value = state.target; i.focus(); i.select();
+  const i = $("#target-in"); i.value = toU(state.target); i.focus(); i.select();
 });
 $("#target-form").addEventListener("submit", async e => {
   e.preventDefault();
-  const v = Math.round(+$("#target-in").value);
+  const v = fromU(+$("#target-in").value);
   $("#target-btn").hidden = false; $("#target-form").hidden = true;
   if (!(v >= 500 && v <= 6000) || !store) return;
   state.target = v; renderToday();
   savePrefs({target:v});
 });
 
-const isToday = t => new Date(t).toDateString() === new Date().toDateString();
+// The Log shows one day: today unless you step back to fill in something you missed.
+let viewDay = new Date(); viewDay.setHours(0,0,0,0);
+const todayStart = () => { const d = new Date(); d.setHours(0,0,0,0); return d; };
+const viewingToday = () => viewDay.getTime() === todayStart().getTime();
+const isToday = t => new Date(t).toDateString() === viewDay.toDateString();
+// back-dated entries get a typical time for the meal so they sort sensibly in that day
+const MEAL_TIME = {breakfast:[8,0], snack:[15,0], lunch:[12,30], dinner:[19,0], drinks:[17,30]};
+function entryTime(cat){
+  if (viewingToday()) return Date.now();
+  const d = new Date(viewDay), [h,m] = MEAL_TIME[cat] || [12,0]; d.setHours(h, m, 0, 0); return d.getTime();
+}
+const dayName = (d, long) => d.toLocaleDateString(undefined, long ? {weekday:"long", day:"numeric", month:"short"} : {weekday:"short", day:"numeric", month:"short"});
+function dayLabelSuffix(){ return viewingToday() ? "" : ` · ${dayName(viewDay)}`; }
+function goDay(delta){
+  if (pending) commitPending();
+  const d = new Date(viewDay); d.setDate(d.getDate() + delta);
+  if (d > todayStart()) return;
+  viewDay = d; renderToday();
+}
+function goToday(){ if (!viewingToday()){ if (pending) commitPending(); viewDay = todayStart(); renderToday(); } }
 function renderToday(){
   const today = state.entries.filter(e => isToday(e.at));
+  const onToday = viewingToday();
+  $("#day-next").disabled = onToday; $("#day-today").hidden = onToday;
+  $("#view-today").classList.toggle("past", !onToday);
+  const yest = todayStart(); yest.setDate(yest.getDate() - 1);
+  $("#log-h").textContent = onToday ? "Today" : viewDay.getTime() === yest.getTime() ? "Yesterday" : dayName(viewDay, true);
   const total = today.reduce((s,e) => s + e.kcal, 0);
-  $("#date").textContent = new Date().toLocaleDateString(undefined,{weekday:"long", day:"numeric", month:"short"});
-  $("#total").innerHTML = `${fmt(total)}<small>kcal</small>`;
+  $("#date").textContent = onToday ? dayName(viewDay, true) : (viewDay.getTime() === yest.getTime() ? "Yesterday" : dayName(viewDay));
+  $("#total").innerHTML = `${fmt(total)}<small>${U()}</small>`;
   const TARGET = state.target;
   $("#target-l").textContent = fmt(TARGET);
   const left = TARGET - total;
@@ -835,7 +882,7 @@ function renderToday(){
   });
   $("#count").textContent = today.length ? `${today.length} ${today.length===1?"entry":"entries"}` : "";
   const log = $("#log"); log.innerHTML = "";
-  if (!today.length){ log.innerHTML = `<li class="empty" style="display:block;border:0">Nothing yet. Tap a meal above, slide, and let go; it logs after a few seconds unless you tap Undo.</li>`; return; }
+  if (!today.length){ log.innerHTML = `<li class="empty" style="display:block;border:0">${onToday ? "Nothing yet. Press a meal above, slide, and let go; it logs after a few seconds unless you tap Undo." : "Nothing logged this day. Press a meal above and slide to add what you had."}</li>`; return; }
   today.slice().reverse().forEach(e => {
     const c = CATS.find(x => x.id === e.cat) || {name:e.cat};
     const li = document.createElement("li");
@@ -954,7 +1001,7 @@ document.querySelectorAll("#cal-mode button").forEach(b => b.addEventListener("c
 }));
 const calTrack = $("#cal-track");
 const calSlider = makeSlider(calTrack, {
-  onMove(p){ calTouched = true; $("#reveal").innerHTML = `Slider at <b class="num">${Math.round(p*100)}%</b> · the current scale reads this as <span class="num">${fmt(kcalAt(calCat,p))}</span> kcal`; updateSave(); },
+  onMove(p){ calTouched = true; $("#reveal").innerHTML = `Slider at <b class="num">${Math.round(p*100)}%</b> · the current scale reads this as <span class="num">${fmt(kcalAt(calCat,p))}</span> ${U()}`; updateSave(); },
 });
 // Guess-a-food pool spans the whole slider: your usual servings, small and large servings,
 // your mains with a side, and the core list. Each pick goes to the stretch of the slider with the fewest points so far.
@@ -1007,12 +1054,12 @@ $("#cal-save").addEventListener("click", async () => {
   if (!store) return;
   const p = calSlider.get();
   const food = calMode === "guess" ? calFood[0] : $("#k-name").value.trim();
-  const kcal = calMode === "guess" ? calFood[1] : Math.round(+$("#k-kcal").value);
+  const kcal = calMode === "guess" ? calFood[1] : fromU(+$("#k-kcal").value);
   const was = kcalAt(calCat,p);
   try { await store.addCalib({cat:calCat, pos:+p.toFixed(4), kcal, food, at:Date.now(), source:calMode}); }
   catch(e){ setStatus("Couldn't save that point. Try again in a moment."); return; }
   const diff = was - kcal;
-  const msg = `Saved. <b>${food}</b> is about <b class="num">${fmt(kcal)}</b> kcal; your slide read as ${fmt(was)} (${diff===0?"spot on":(diff>0?"+":"")+fmt(diff)}).`;
+  const msg = `Saved. <b>${food}</b> is about <b class="num">${fmt(kcal)}</b> ${U()}; your slide read as ${fmt(was)} (${diff===0?"spot on":(diff>0?"+":"")+fmt(diff)}).`;
   if (calMode === "guess") newFood(); else { $("#k-name").value = ""; $("#k-kcal").value = ""; calTouched = false; calSlider.set(0); updateSave(); }
   $("#reveal").innerHTML = msg;
 });
@@ -1045,7 +1092,7 @@ function renderCal(){
   const pts = state.calib.filter(x => x.cat === calCat);
   const cur = curveOf(calCat), f = fit(pts);
   $("#chart-title").textContent = `${cname} scale`;
-  $("#params").innerHTML = `full slide <b class="num">${fmt(cur.max)}</b> kcal · curve <b class="num">${cur.g}</b>` +
+  $("#params").innerHTML = `full slide <b class="num">${fmt(cur.max)}</b> ${U()} · curve <b class="num">${cur.g}</b>` +
     (f ? ` → fit <b class="num">${fmt(f.max)}</b> · <b class="num">${f.g}</b>` : "");
   $("#apply-fit").disabled = !f;
   $("#apply-fit").textContent = f ? "Use fitted curve" : `Use fitted curve (need ${Math.max(0,3-pts.length)} more)`;
@@ -1054,7 +1101,7 @@ function renderCal(){
   const ul = $("#pts"); ul.innerHTML = "";
   pts.slice().reverse().forEach(x => {
     const li = document.createElement("li");
-    li.innerHTML = `<span></span><span class="num">${Math.round(x.pos*100)}%</span><span class="num">${fmt(x.kcal)} kcal</span><button class="x" aria-label="Delete point">×</button>`;
+    li.innerHTML = `<span></span><span class="num">${Math.round(x.pos*100)}%</span><span class="num">${fmt(x.kcal)} ${U()}</span><button class="x" aria-label="Delete point">×</button>`;
     li.firstChild.textContent = x.food;
     li.querySelector("button").addEventListener("click", () => store.delCalib(x.id));
     ul.appendChild(li);
@@ -1124,7 +1171,7 @@ $("#f-only").addEventListener("change", e => { savePrefs({onlyMine:{...(state.pr
 $("#f-setup").addEventListener("click", () => openSetup(CATS.findIndex(c => c.id === foodCat)));
 $("#food-form").addEventListener("submit", e => {
   e.preventDefault();
-  const n = $("#f-name").value.trim(), v = Math.round(+$("#f-kcal").value);
+  const n = $("#f-name").value.trim(), v = fromU(+$("#f-kcal").value);
   if (!n || !(v > 0)) return;
   const custom = customOf(foodCat).filter(c => c.n.toLowerCase() !== n.toLowerCase());
   savePrefs({custom:{...state.prefs.custom, [foodCat]:[{n, m:v}, ...custom]}});
@@ -1365,12 +1412,14 @@ function renderHistory(){
 
   const W = 340, H = 210, L = 40, R = 8, Tp = 14, Bt = 24, iw = W - L - R, ih = H - Tp - Bt;
   const top = Math.max(T, ...B.map(b => b.total)) * 1.08;
-  const step = top > 3000 ? 1000 : top > 1200 ? 500 : 250;
-  const ymax = Math.ceil(top / step) * step;
+  // gridlines at round numbers of the chosen unit
+  const f = isKJ() ? KJ_PER_KCAL : 1, topU = top * f;
+  const step = isKJ() ? (topU > 12000 ? 4000 : topU > 5000 ? 2000 : 1000) : (top > 3000 ? 1000 : top > 1200 ? 500 : 250);
+  const ymax = Math.ceil(topU / step) * step / f;
   const y = v => Tp + ih - v / ymax * ih;
   const band = iw / B.length, bw = Math.min(18, band * 0.62);
   let g = "";
-  for (let v = 0; v <= ymax; v += step) g += `<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L-6}" y="${y(v)+3.5}" text-anchor="end" font-size="10" fill="var(--muted)">${v >= 1000 ? (v/1000) + "k" : v}</text>`;
+  for (let u = 0; u <= ymax * f + 0.5; u += step){ const v = u / f; g += `<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L-6}" y="${y(v)+3.5}" text-anchor="end" font-size="10" fill="var(--muted)">${u >= 1000 ? (u/1000) + "k" : u}</text>`; }
   B.forEach((b,i) => {
     const cx = L + band * (i + .5), x0 = cx - bw/2;
     let acc = 0; const segs = CATS.filter(c => b.sums[c.id] > 0);
@@ -1458,6 +1507,28 @@ $("#b-paste").addEventListener("click", () => { if (!$("#b-text").value.trim()){
 
 function setStatus(t){ $("#status").textContent = t; }
 
+// ---------- settings ----------
+function renderSettings(){
+  document.querySelectorAll("#s-unit button").forEach(b => b.setAttribute("aria-pressed", b.dataset.unit === U()));
+  document.querySelectorAll("#s-hand button").forEach(b => b.setAttribute("aria-pressed", b.dataset.hand === hand()));
+  document.querySelectorAll("[data-unit-ph]").forEach(i => i.placeholder = U());
+}
+document.querySelectorAll("#s-unit button").forEach(b => b.addEventListener("click", () => {
+  savePrefs({unit: b.dataset.unit}); renderSettings(); renderToday(); renderCal(); renderFoods(); renderHistory();
+}));
+document.querySelectorAll("#s-hand button").forEach(b => b.addEventListener("click", () => {
+  savePrefs({hand: b.dataset.hand}); renderSettings(); layoutStar();
+}));
+// Always come back to today when the app is reopened or brought back to the front.
+let hiddenAt = 0;
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") hiddenAt = Date.now();
+  else if (hiddenAt && Date.now() - hiddenAt > 60000) goToday();
+});
+$("#day-prev").addEventListener("click", () => goDay(-1));
+$("#day-next").addEventListener("click", () => goDay(1));
+$("#day-today").addEventListener("click", goToday);
+
 // ---------- boot ----------
 renderToday(); renderTicks(); renderCal(); renderFoods(); layoutStar();
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutStar);
@@ -1467,14 +1538,14 @@ function useLocal(note){
   if (usedDb) return;
   store = localStore(); store.subscribe(onData); setStatus(note);
 }
-const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261111-053207"), 10000);
+const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261117-040037"), 10000);
 (window.claude ? window.claude.use("db") : Promise.resolve(null)).then(db => {
   clearTimeout(fallbackTimer);
-  if (!db){ useLocal("Saved on this device only · version 20261111-053207"); return; }
+  if (!db){ useLocal("Saved on this device only · version 20261117-040037"); return; }
   usedDb = true; store = dbStore(db);
   const slow = setTimeout(() => setStatus("Can't reach your saved data yet. New entries will sync when it reconnects."), 10000);
   store.subscribe(onData, e => { clearTimeout(slow); setStatus("Sync stopped. Reload the page to reconnect."); }, () => { clearTimeout(slow); setStatus("Synced to your account"); });
-}).catch(() => useLocal("Saved on this device only · version 20261111-053207"));
+}).catch(() => useLocal("Saved on this device only · version 20261117-040037"));
 })();
 </script>
 
