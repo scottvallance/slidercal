@@ -31,7 +31,7 @@ img{max-width:100%}
   font-style: normal;
   font-weight: 500;
   font-stretch: 100%;
-  font-display: swap;
+  font-display: fallback;
   src: url(fonts/bricolage-grotesque.woff2) format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
@@ -40,7 +40,7 @@ img{max-width:100%}
   font-style: normal;
   font-weight: 700;
   font-stretch: 100%;
-  font-display: swap;
+  font-display: fallback;
   src: url(fonts/bricolage-grotesque.woff2) format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
@@ -49,7 +49,7 @@ img{max-width:100%}
   font-style: normal;
   font-weight: 800;
   font-stretch: 100%;
-  font-display: swap;
+  font-display: fallback;
   src: url(fonts/bricolage-grotesque.woff2) format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
@@ -57,7 +57,7 @@ img{max-width:100%}
   font-family: 'DM Sans';
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: fallback;
   src: url(fonts/dm-sans.woff2) format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
@@ -65,7 +65,7 @@ img{max-width:100%}
   font-family: 'DM Sans';
   font-style: normal;
   font-weight: 500;
-  font-display: swap;
+  font-display: fallback;
   src: url(fonts/dm-sans.woff2) format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
@@ -73,7 +73,7 @@ img{max-width:100%}
   font-family: 'DM Sans';
   font-style: normal;
   font-weight: 600;
-  font-display: swap;
+  font-display: fallback;
   src: url(fonts/dm-sans.woff2) format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
@@ -586,7 +586,10 @@ function onData(d){
     firstRunChecked = true;
     if (!state.prefs.setupV2Done && !CATS.some(c => customOf(c.id).length)) setTimeout(() => openSetup(0), 0);
   }
-  renderToday(); renderTicks(); renderCal(); renderFoods(); layoutStar(); renderSettings();
+  renderToday(); renderTicks(); layoutStar(); renderSettings();
+  // other tabs draw when opened
+  if (!$("#view-cal").hidden) renderCal();
+  if (!$("#view-foods").hidden) renderFoods();
   if (!$("#view-history").hidden) renderHistory();
 }
 // Foods offered for a meal: built-ins you haven't switched off, your own, and meals you calibrated with real numbers.
@@ -1368,6 +1371,7 @@ function showView(v){
   window.scrollTo(0,0);
   if (v === "today") layoutStar();
   if (v === "foods") renderFoods();
+  if (v === "cal") renderCal();
   if (v === "history") renderHistory();
 }
 document.querySelectorAll(".nav button").forEach(b => b.addEventListener("click", () => showView(b.dataset.view)));
@@ -1534,22 +1538,26 @@ $("#day-next").addEventListener("click", () => goDay(1));
 $("#day-today").addEventListener("click", goToday);
 
 // ---------- boot ----------
-renderToday(); renderTicks(); renderCal(); renderFoods(); layoutStar();
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutStar);
 let usedDb = false;
-if (window.claude) window.claude.use("sample").then(fn => { sampleFn = fn; updateSetupButtons(); }).catch(() => {});
 function useLocal(note){
-  if (usedDb) return;
+  if (usedDb || store) return;
   store = localStore(); store.subscribe(onData); setStatus(note);
 }
-const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261117-040505"), 10000);
-(window.claude ? window.claude.use("db") : Promise.resolve(null)).then(db => {
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutStar);
+// Installed app: the data is in this browser, so draw the Log once with it straight away.
+if (!window.claude) useLocal("Saved on this device only · version 20261119-235450");
+else {
+renderToday(); renderTicks(); layoutStar();
+window.claude.use("sample").then(fn => { sampleFn = fn; updateSetupButtons(); }).catch(() => {});
+const fallbackTimer = setTimeout(() => useLocal("Saved on this device only · version 20261119-235450"), 10000);
+window.claude.use("db").then(db => {
   clearTimeout(fallbackTimer);
-  if (!db){ useLocal("Saved on this device only · version 20261117-040505"); return; }
+  if (!db){ useLocal("Saved on this device only · version 20261119-235450"); return; }
   usedDb = true; store = dbStore(db);
   const slow = setTimeout(() => setStatus("Can't reach your saved data yet. New entries will sync when it reconnects."), 10000);
   store.subscribe(onData, e => { clearTimeout(slow); setStatus("Sync stopped. Reload the page to reconnect."); }, () => { clearTimeout(slow); setStatus("Synced to your account"); });
-}).catch(() => useLocal("Saved on this device only · version 20261117-040505"));
+}).catch(() => useLocal("Saved on this device only · version 20261119-235450"));
+}
 })();
 </script>
 
